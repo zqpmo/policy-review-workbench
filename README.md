@@ -22,10 +22,12 @@ Policy/regulation review needs a **repeatable chain**: ingest clauses, compare a
 ## Quick start
 
 ```bash
-# Open the UI — needs workbench.html AND policy-review-progress.js in the same folder
+# Open the UI — needs workbench.html (or workbench.en.html) AND policy-review-progress.js in the same folder
 # (not a single self-contained HTML file)
-start workbench.html          # Windows
-open workbench.html           # macOS
+start workbench.html          # Windows — Chinese UI
+start workbench.en.html       # Windows — English UI
+open workbench.html           # macOS — Chinese UI
+open workbench.en.html        # macOS — English UI
 
 # Run all offline tests (no network)
 node test-parse-layer.js
@@ -46,7 +48,8 @@ If you run **only** `test-case-b.js` on a fresh tree, the scorecard is **partial
 
 | File | Role |
 |---|---|
-| `workbench.html` | UI (styles + app JS inline) — **requires** sibling `policy-review-progress.js` |
+| `workbench.html` | Chinese UI (styles + app JS inline) — **requires** sibling `policy-review-progress.js` |
+| `workbench.en.html` | English UI (same app logic, translated chrome) — same dependencies |
 | `policy-review-progress.js` | Save/restore + **`canExport`** gate — shared by UI buttons/clicks and tests |
 | `policy-review-parse-layer.js` | Parse stub: detect type, async job status, core-basis failures |
 | `policy-review-flow-matrix.js` | Pure state machine → enabled/disabled actions |

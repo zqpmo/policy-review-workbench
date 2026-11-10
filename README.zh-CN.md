@@ -22,10 +22,12 @@
 ## 快速开始
 
 ```bash
-# 打开界面 — 需同目录下同时有 workbench.html 与 policy-review-progress.js
+# 打开界面 — 需同目录下同时有 HTML 与 policy-review-progress.js
 # （不是单文件自包含 HTML）
-start workbench.html          # Windows
-open workbench.html           # macOS
+start workbench.html          # Windows — 中文界面
+start workbench.en.html       # Windows — 英文界面
+open workbench.html           # macOS — 中文界面
+open workbench.en.html        # macOS — 英文界面
 
 # 跑全部离线测试（不联网）
 node test-parse-layer.js
@@ -46,7 +48,8 @@ node test-case-b.js            # 合并 CASE-B 到记分文件
 
 | 文件 | 职责 |
 |---|---|
-| `workbench.html` | UI（样式 + 业务 JS 内联）— **需要**同目录 `policy-review-progress.js` |
+| `workbench.html` | 中文 UI（样式 + 业务 JS 内联）— **需要**同目录 `policy-review-progress.js` |
+| `workbench.en.html` | 英文 UI（同一套逻辑，文案英文化）— 依赖相同 |
 | `policy-review-progress.js` | 保存/恢复 + **`canExport`** 门禁 — 界面按钮/点击与测试共用 |
 | `policy-review-parse-layer.js` | 解析桩：类型检测、异步任务状态、核心依据失败 |
 | `policy-review-flow-matrix.js` | 纯状态机 → 按钮启用/禁用 |

@@ -1,0 +1,1291 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Policy Review Workbench | v0.4.7</title>
+<style>
+:root{--text:#2C2C2B;--muted:#7D7A75;--canvas:#fff;--soft:#F9F8F7;--soft2:#F0EFED;--border:#E6E5E3;--blue:#2783DE;--blue-soft:#E5F2FC;--green:#46A171;--green-soft:#E8F1EC;--orange:#D5803B;--orange-soft:#FBEBDE;--red:#E56458;--red-soft:#FCE9E7;--radius:8px;--shadow:0 1px 2px rgba(0,0,0,.05),0 4px 12px rgba(0,0,0,.04)}
+*{box-sizing:border-box}body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",system-ui,sans-serif;color:var(--text);background:var(--soft);font-size:15px;line-height:1.5}
+button,input,select,textarea{font:inherit}.app{min-height:100vh;display:flex;flex-direction:column}
+.topbar{background:var(--canvas);border-bottom:1px solid var(--border);padding:10px 16px;display:flex;flex-wrap:wrap;gap:10px 14px;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:30}
+.brand h1{margin:0;font-size:17px;font-weight:650}.brand .sub{color:var(--muted);font-size:12px;font-weight:500}
+.meta-line{color:var(--muted);font-size:12px;display:flex;flex-wrap:wrap;gap:8px 12px;margin-top:2px}
+.badge{display:inline-flex;align-items:center;padding:2px 10px;border-radius:999px;font-size:12px;font-weight:600}
+.badge.draft{background:var(--soft2);color:var(--muted)}.badge.uploaded{background:var(--blue-soft);color:var(--blue)}
+.badge.parsing,.badge.comparing,.badge.qc_running{background:var(--orange-soft);color:var(--orange)}
+.badge.parse_flagged,.badge.manual_hold{background:var(--red-soft);color:var(--red)}
+.badge.ready_for_review,.badge.ready_for_export,.badge.success{background:var(--green-soft);color:var(--green)}
+.actions{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.btn{border:1px solid var(--border);background:var(--canvas);color:var(--text);border-radius:var(--radius);padding:8px 12px;min-height:38px;cursor:pointer}
+.btn:hover:not(:disabled){background:var(--soft)}.btn:disabled{opacity:.45;cursor:not-allowed}
+.btn.primary{background:var(--blue);border-color:var(--blue);color:#fff}.btn.primary:hover:not(:disabled){filter:brightness(.96)}
+.btn.danger{color:var(--red);border-color:#f0c7c3}.btn.sm{padding:4px 8px;min-height:30px;font-size:12px}
+.progress-strip{background:var(--canvas);border-bottom:1px solid var(--border);padding:8px 16px;display:flex;flex-wrap:wrap;gap:10px 16px;align-items:center;font-size:12px;color:var(--muted)}
+.progress-strip strong{color:var(--text)}.bar{width:140px;height:7px;background:var(--soft2);border-radius:999px;overflow:hidden}.bar>i{display:block;height:100%;background:var(--blue);width:0%;transition:width .25s}
+.layout{display:grid;grid-template-columns:minmax(300px,360px) minmax(0,1fr) minmax(280px,340px);gap:12px;padding:12px;flex:1}
+@media(max-width:1100px){.layout{grid-template-columns:1fr}}
+.panel{background:var(--canvas);border:1px solid var(--border);border-radius:12px;box-shadow:var(--shadow);display:flex;flex-direction:column;min-height:0}
+.panel-h{padding:12px 14px;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center;gap:8px}
+.panel-h h2{margin:0;font-size:14px;font-weight:650}.panel-b{padding:12px 14px;display:flex;flex-direction:column;gap:12px;overflow:auto}
+.field{display:flex;flex-direction:column;gap:6px}.field label{font-size:12px;color:var(--muted);font-weight:600}
+.field input,.field select,.field textarea{border:1px solid var(--border);border-radius:var(--radius);padding:8px 10px;background:#fff;color:var(--text)}
+.field textarea{min-height:72px;resize:vertical}.row-2{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.chips{display:flex;flex-wrap:wrap;gap:6px}.chip{border:1px solid var(--border);background:var(--soft);border-radius:999px;padding:4px 10px;font-size:12px;cursor:pointer;user-select:none}.chip.on{background:var(--blue-soft);border-color:#b7d8f7;color:var(--blue);font-weight:600}
+.section-title{margin:4px 0 0;font-size:13px;font-weight:650;display:flex;justify-content:space-between;align-items:center}
+.hint{font-size:12px;color:var(--muted)}.alert{border-radius:var(--radius);padding:8px 10px;font-size:13px;border:1px solid transparent}
+.alert.error{background:var(--red-soft);color:#9d3b33;border-color:#f0c7c3}.alert.warn{background:var(--orange-soft);color:#8a5220;border-color:#f0d3b4}
+.alert.ok{background:var(--green-soft);color:#2f6b4b;border-color:#c5dfd1}.alert.info{background:var(--blue-soft);color:#1d5f9e;border-color:#b7d8f7}
+.upload-box{border:1px dashed var(--border);border-radius:var(--radius);background:var(--soft);padding:12px;display:flex;flex-direction:column;gap:8px;transition:border-color .15s,background .15s}
+.upload-box.dragover{border-color:var(--blue);background:var(--blue-soft)}.upload-box.group-a{border-color:#c9dff5;background:#f7fbfe}.upload-box.group-b{border-color:#d3e7da;background:#f7fbf8}.upload-box.group-c{border-color:#ecd8c2;background:#fdf8f3}
+.file-card{border:1px solid var(--border);border-radius:var(--radius);background:#fff;padding:10px;display:flex;flex-direction:column;gap:8px}.file-card.block{border-color:#f0c7c3;background:#fff8f7}
+.file-top{display:flex;justify-content:space-between;gap:8px;align-items:flex-start}.file-name{font-size:13px;font-weight:650;word-break:break-all}
+.file-meta{font-size:12px;color:var(--muted);display:flex;flex-wrap:wrap;gap:6px 10px}.file-actions{display:flex;flex-wrap:wrap;gap:6px}
+.empty{border:1px dashed var(--border);border-radius:var(--radius);padding:16px;text-align:center;color:var(--muted);font-size:13px;background:var(--soft)}
+table{width:100%;border-collapse:collapse;font-size:12px}th,td{border-bottom:1px solid var(--border);padding:8px 6px;text-align:left;vertical-align:top}th{color:var(--muted);font-weight:650;background:var(--soft);position:sticky;top:0}
+.diff-tag{display:inline-block;padding:1px 6px;border-radius:999px;background:var(--orange-soft);color:#8a5220;font-size:11px;font-weight:650}
+.report-block{border-top:1px solid var(--border);padding-top:10px}.report-block:first-child{border-top:0;padding-top:0}.report-block h3{margin:0 0 6px;font-size:13px}.report-block p,.report-block li{font-size:13px;margin:0 0 6px}
+.qc-item{border:1px solid var(--border);border-radius:var(--radius);padding:8px 10px;background:var(--soft);font-size:13px}.qc-item.flag{background:var(--red-soft);border-color:#f0c7c3}
+.payload{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:11px;background:#1e1e1e;color:#e8e8e8;border-radius:var(--radius);padding:10px;max-height:220px;overflow:auto;white-space:pre-wrap;word-break:break-word}
+.drawer-mask{position:fixed;inset:0;background:rgba(0,0,0,.28);display:none;align-items:flex-end;justify-content:center;z-index:40}.drawer-mask.open{display:flex}
+.drawer{width:min(520px,100%);background:#fff;border-radius:12px 12px 0 0;padding:16px;max-height:85vh;overflow:auto;box-shadow:var(--shadow)}.drawer h3{margin:0 0 12px;font-size:16px}.drawer-actions{display:flex;justify-content:flex-end;gap:8px;margin-top:12px}
+.sr-only{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}
+details.adv{border:1px dashed var(--border);border-radius:8px;padding:8px 10px;background:#fafafa}details.adv summary{cursor:pointer;font-size:12px;color:var(--muted);font-weight:600}
+.mode-help{font-size:12px;color:#1d5f9e;background:var(--blue-soft);border:1px solid #b7d8f7;border-radius:8px;padding:8px 10px}
+
+.backend-bar{background:#EEF6FF;border-bottom:1px solid #cfe3f8;padding:8px 16px;display:flex;flex-wrap:wrap;gap:8px 12px;align-items:center;font-size:12px;color:var(--muted)}
+.backend-bar label{display:inline-flex;align-items:center;gap:6px;cursor:pointer}
+.backend-bar input[type=text]{min-width:min(520px,70vw);padding:6px 8px;border:1px solid var(--border);border-radius:6px;background:#fff;color:var(--text)}
+.backend-bar .ok{color:var(--green);font-weight:600}.backend-bar .warn{color:var(--orange);font-weight:600}.backend-bar .err{color:var(--red);font-weight:600}
+.backend-bar .mode-on{outline:2px solid var(--blue);background:var(--blue-soft)!important;color:var(--blue)!important;font-weight:700}
+.backend-bar .btn.primary.mode-on{background:var(--blue)!important;color:#fff!important;outline-color:#1565c0}
+.demo-banner{margin:8px 16px;padding:10px 12px;border:1px solid #f0d3b4;background:#FBEBDE;color:#8a5220;border-radius:8px;font-size:13px;line-height:1.45}
+.demo-banner strong{color:#6b3f1a}
+.demo-banner code{background:rgba(0,0,0,.06);padding:0 4px;border-radius:3px}
+</style>
+</head>
+<body>
+<div class="app">
+  <header class="topbar">
+    <div class="brand">
+      <h1>Policy Review Workbench <span class="sub">v0.4.7 · optional n8n Webhook</span></h1>
+      <div class="meta-line">
+        <span id="caseIdLabel">—</span>
+        <span id="caseTitleLabel">—</span>
+        <span id="updatedLabel">Not updated</span>
+      </div>
+    </div>
+    <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
+      <span id="statusBadge" class="badge draft">draft</span>
+      <span class="hint" id="stageHint">Draft: fill task info and upload files</span>
+    </div>
+    <div class="actions" id="topActions">
+      <button class="btn primary" id="btnRun" type="button">Start review</button>
+      <button class="btn" id="btnSave" type="button" title="Save form/metadata in this browser only; not a company task store">Save progress</button>
+      <button class="btn primary" id="btnExportWord" type="button" disabled title="Download HTML-wrapped .doc (not native Word)">Export report (.doc)</button>
+      <button class="btn primary" id="btnExportExcel" type="button" disabled title="Download HTML table as .xls (not native Excel)">Export table (.xls)</button>
+      <button class="btn" id="btnAllowExport" type="button" disabled title="Enabled after review; can also confirm manually">Allow export</button>
+      <button class="btn" id="btnNewCase" type="button">Reset</button>
+      <button class="btn" id="btnParse" type="button" disabled>Parse only</button>
+      <button class="btn" id="btnCompare" type="button" disabled>Compare only</button>
+      <button class="btn" id="btnQc" type="button" disabled>QC only</button>
+      <button class="btn danger" id="btnHold" type="button">Hold</button>
+    </div>
+  </header>
+
+  <div class="demo-banner" role="note">
+    <strong>Demo / Mock is ON by default:</strong> local mode <strong>does not read uploaded file bodies</strong>; clause counts, compare rows and QC are <strong>simulated</strong> — not analysis of your document. 
+    UI export downloads <strong>HTML-wrapped  <code>.doc</code> / <code>.xls</code></strong>(not native Office); 
+    Node <code>export-layer</code> Module export is  <strong>text / CSV / JSON</strong>. See README. 
+  </div>
+
+    <div class="backend-bar" id="backendBar">
+    <strong style="color:var(--text)">Backend</strong>
+    <button type="button" class="btn sm" id="btnModeLocal">Mode: Local Mock</button>
+    <button type="button" class="btn sm primary" id="btnModeN8n">Mode: n8n Dify</button>
+    <input type="hidden" id="runModeValue" value="local" />
+    <input type="text" id="n8nWebhookUrl" placeholder="http://127.0.0.1:5678/webhook/policy-review-intake" style="min-width:min(420px,60vw)" />
+    <button class="btn sm" id="btnSaveBackend" type="button">Remember URL</button>
+    <button class="btn sm primary" id="btnRunN8n" type="button">① Run n8n review</button>
+    <button class="btn sm" id="btnPingBackend" type="button">Connection help</button>
+    <span id="backendHint" class="warn">Click "Mode: n8n Dify" first, then "Run n8n review"</span>
+  </div>
+<div class="progress-strip">
+    <span>Main chain <strong id="feProgressText">0/4</strong></span>
+    <div class="bar" aria-hidden="true"><i id="feProgressBar"></i></div>
+    <span id="blockingCount">Blocked 0</span>
+    <span id="warningCount">Warnings 0</span>
+    <span>Mode: offline v0.4.4 (drag-drop · top-bar actions · openable Word/Excel · one-shot task)</span>
+  </div>
+
+  <main class="layout">
+    <section class="panel" aria-label="Input panel">
+      <div class="panel-h"><h2>Input</h2><span class="hint">Task · Upload · Groups</span></div>
+      <div class="panel-b">
+        <div id="globalAlerts"></div>
+        <div class="alert info" id="saveHint">"<strong>Save progress</strong>" stores <strong>form/file metadata in this browser only</strong> — <strong>not compare/QC/result source</strong>. After refresh, re-run <strong>Start review</strong> before export. Not synced across devices; one-shot task page with no account history.</div>
+
+        <div class="section-title">A | Task info</div>
+        <div class="field">
+          <label for="caseTitle">Review task name (may be redacted)</label>
+          <input id="caseTitle" placeholder="Auto-filled after upload; you may use a redacted name" value="" />
+        </div>
+        <div class="row-2">
+          <div class="field">
+            <label for="reviewMode">Review mode *</label>
+            <select id="reviewMode">
+              <option>Policy audit</option>
+              <option>Revision review</option>
+              <option>Comparative study</option>
+            </select>
+          </div>
+          <div class="field">
+            <label for="asOfDate">As-of date *</label>
+            <input id="asOfDate" type="date" />
+          </div>
+        </div>
+        <div class="mode-help" id="modeHelp">Policy audit: compare against upper/peer/prior versions for compliance gaps.</div>
+        <div class="field">
+          <label for="reviewScope">Review scope *</label>
+          <select id="reviewScope">
+            <option value="Upper rules + peer process + prior versions">Upper rules + peer process + prior versions</option>
+            <option value="Upper rules only">Upper rules only</option>
+            <option value="Upper rules + prior versions">Upper rules + prior versions</option>
+          </select>
+          <div class="hint">Choose reference groups to compare against.</div>
+        </div>
+        <div class="field">
+          <label>Focus areas</label>
+          <div class="chips" id="focusChips">
+            <span class="chip on" data-v="Approval authority">Approval authority</span>
+            <span class="chip on" data-v="Roles & duties">Roles & duties</span>
+            <span class="chip" data-v="Condition triggers">Condition triggers</span>
+            <span class="chip" data-v="Process closure">Process closure</span>
+            <span class="chip" data-v="Form evidence">Form evidence</span>
+            <span class="chip" data-v="Scope of application">Scope of application</span>
+            <span class="chip" data-v="Version continuity">Version continuity</span>
+            <span class="chip" data-v="Exception mechanism">Exception mechanism</span>
+          </div>
+        </div>
+        <label class="hint" style="display:flex;gap:8px;align-items:center">
+          <input type="checkbox" id="allowPublic" /> Allow public source lookup (default off)
+        </label>
+
+        <div class="section-title">B | Document under review (1 file)</div>
+        <div class="upload-box" id="dropReviewed">
+          <div class="hint">Supports .doc / .docx / .pdf · drag & drop · re-drop replaces</div>
+          <input class="sr-only" type="file" id="reviewedFile" accept=".doc,.docx,.pdf,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document" />
+          <button class="btn sm" type="button" id="btnReviewedUpload">Choose / replace document</button>
+          <div id="reviewedSlot" class="empty">No document under review yet</div>
+        </div>
+
+        <div class="section-title">C1｜Upper-rule source <span class="hint" id="statA">0 files</span></div>
+        <div class="upload-box group-a" id="dropA">
+          <div class="hint">Upper rules / HQ / laws · drop multiple files</div>
+          <input class="sr-only" type="file" id="fileA" accept=".doc,.docx,.pdf" multiple />
+          <button class="btn sm" type="button" data-upload="Upper-rule source">Upload to Upper-rule source</button>
+          <div id="listA"></div>
+        </div>
+
+        <div class="section-title">C2｜Peer-process source <span class="hint" id="statB">0 files</span></div>
+        <div class="upload-box group-b" id="dropB">
+          <div class="hint">Peer / horizontal process, forms, duties · drop multiple</div>
+          <input class="sr-only" type="file" id="fileB" accept=".doc,.docx,.pdf" multiple />
+          <button class="btn sm" type="button" data-upload="Peer-process source">Upload to Peer-process source</button>
+          <div id="listB"></div>
+        </div>
+
+        <div class="section-title">C3｜Prior-version source <span class="hint" id="statC">0 files</span></div>
+        <div class="upload-box group-c" id="dropC">
+          <div class="hint">Prior / previous / draft revisions · drop multiple</div>
+          <input class="sr-only" type="file" id="fileC" accept=".doc,.docx,.pdf" multiple />
+          <button class="btn sm" type="button" data-upload="Prior-version source">Upload to Prior-version source</button>
+          <div id="listC"></div>
+        </div>
+
+        <details class="adv" id="payloadDetails">
+          <summary>Dev debug: unified payload preview (collapsed; most users can ignore)</summary>
+          <pre class="payload" id="payloadView" style="margin-top:8px">{}</pre>
+        </details>
+      </div>
+    </section>
+
+    <section class="panel" aria-label="Processing and compare">
+      <div class="panel-h"><h2>Processing &amp; compare</h2><span class="hint">Parse · clauses · table</span></div>
+      <div class="panel-b">
+        <div class="section-title">E | Parse progress</div>
+        <div id="parseProgress" class="empty">Parse not started</div>
+        <div class="section-title">F | Clause preview (Mock)</div>
+        <div id="clausePreview" class="empty">Clause preview after parse</div>
+        <div class="section-title">G | Compare table preview</div>
+        <div id="compareTableWrap" class="empty">Main table after compare</div>
+      </div>
+    </section>
+
+    <section class="panel" aria-label="Report and QC">
+      <div class="panel-h"><h2>Report &amp; QC</h2><span class="hint">Draft · review</span></div>
+      <div class="panel-b">
+        <div class="section-title">H | Report preview</div>
+        <div id="reportPreview" class="empty">Report draft structure before QC</div>
+        <div class="section-title">I | QC panel</div>
+        <div id="qcPanel" class="empty">QC not run</div>
+        <div class="section-title">J | Manual review</div>
+        <div class="field">
+          <label for="manualComment">Manual notes</label>
+          <textarea id="manualComment" placeholder="Items that need your confirmation…"></textarea>
+        </div>
+        <label class="hint" style="display:flex;gap:8px;align-items:center">
+          <input type="checkbox" id="allowExportChk" /> Confirm this draft is exportable (auto-checked after review; still skim the report)
+        </label>
+        <div id="exportHint" class="alert info">Finish review before export; "Allow export" is in the top bar, not under Advanced.</div>
+      </div>
+    </section>
+  </main>
+</div>
+
+<div class="drawer-mask" id="drawerMask" role="dialog" aria-modal="true" aria-labelledby="drawerTitle">
+  <div class="drawer">
+    <h3 id="drawerTitle">Edit file metadata</h3>
+    <div class="field"><label>Filename *</label><input id="m_name" /></div>
+    <div class="row-2">
+      <div class="field"><label>Source category</label><input id="m_cat" disabled /></div>
+      <div class="field">
+        <label id="m_sub_label">Source subcategory *</label>
+        <select id="m_sub"></select>
+      </div>
+    </div>
+    <div class="field"><label>Official document title</label><input id="m_title" /></div>
+    <div class="row-2">
+      <div class="field"><label>Document code</label><input id="m_code" /></div>
+      <div class="field"><label>Version label</label><input id="m_ver" placeholder="e.g. 2026 edition" /></div>
+    </div>
+    <div class="row-2">
+      <div class="field"><label>Effective date</label><input id="m_eff" type="date" /></div>
+      <div class="field">
+        <label>Weight</label>
+        <select id="m_weight">
+          <option>Core basis</option>
+          <option>Supporting basis</option>
+          <option>For reference only</option>
+          <option>Under review</option>
+        </select>
+      </div>
+    </div>
+    <label class="hint" style="display:flex;gap:8px;align-items:center;margin-top:8px" id="m_core_wrap">
+      <input type="checkbox" id="m_core" /> Mark as core basis is_core_basis
+    </label>
+    <div id="drawerError" class="alert error" style="display:none;margin-top:10px"></div>
+    <div class="drawer-actions">
+      <button class="btn" type="button" id="drawerCancel">Cancel</button>
+      <button class="btn primary" type="button" id="drawerSave">Save metadata</button>
+    </div>
+  </div>
+</div>
+
+<script src="policy-review-progress.js"></script>
+<script>
+(function () {
+  var SUBCATS = {
+    'Upper-rule source': ['Upper', 'HQ / parent unit', 'Laws & regulations', 'Upper special notice', 'Upper management rules'],
+    'Peer-process source': ['Peer', 'Horizontal', 'Supporting process', 'Forms', 'Contracts', 'Approval rules', 'Duty rules'],
+    'Prior-version source': ['Prior version', 'Previous version', 'Revision draft'],
+    'Document under review': ['Main file', 'Submission draft', 'Consultation draft', 'Approval draft']
+  };
+  var STAGE_HINT = {
+    draft: 'Draft: fill task info and upload files',
+    uploaded: 'Uploaded: complete metadata to start review',
+    parsing: 'Parsing…',
+    parse_flagged: 'Parse error: core basis failed — compare blocked',
+    comparing: 'Comparing…',
+    qc_running: 'QC running…',
+    ready_for_review: 'Ready for review',
+    ready_for_export: 'Export Word / Excel',
+    manual_hold: 'On hold'
+  };
+  var MODE_HELP = {
+    'Policy audit': 'Policy audit: compare against upper/peer/prior versions for compliance gaps.',
+    'Revision review': 'Revision review: check whether draft changes vs current/upper rules are sufficient and coherent.',
+    'Comparative study': 'Comparative study: multi-document diff matrix; not a formal audit conclusion.'
+  };
+
+  var state = {
+    case_id: '',
+    status: 'draft',
+    allow_export: false,
+    reviewed: null,
+    refs: [],
+    parseLog: [],
+    compareRows: [],
+    report: null,
+    qc: null,
+    // Recorded when results are produced (not when UI mode is selected later)
+    result_source: 'unknown', // 'local_mock' | 'n8n' | 'unknown'
+    editingId: null,
+    editingReviewed: false,
+    prevStatusBeforeHold: null,
+    feChecks: { topbar: true, upload: false, metadata: false, mock: false }
+  };
+  function resultSource() {
+    return state.result_source || 'unknown';
+  }
+  function resultSourceDisclaimer(src) {
+    src = src || resultSource();
+    if (src === 'local_mock') {
+      return '[Important] Source=Local Mock: file bodies were not read; clauses, compare and QC are simulated — not analysis of your document.';
+    }
+    if (src === 'n8n') {
+      return '[Important] Source=n8n: results come from the backend; this UI did not send file bodies (metadata only). Review with backend docs.';
+    }
+    return '[Important] Source=Unknown: how results were produced is unclear — human review required.';
+  }
+  var seq = 1;
+  function $(id) { return document.getElementById(id); }
+  function nowLabel() {
+    return new Date().toLocaleString('zh-CN', { hour12: false, timeZone: 'Asia/Hong_Kong' });
+  }
+  function genCaseId() {
+    var d = new Date();
+    function p(n) { return String(n).padStart(2, '0'); }
+    return 'CASE-' + d.getFullYear() + p(d.getMonth() + 1) + p(d.getDate()) + '-' + Math.floor(Math.random() * 900 + 100);
+  }
+  function extOk(name) { return /\.(pdf|docx?)$/i.test(name || ''); }
+  function escapeHtml(s) {
+    return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) {
+      return ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c];
+    });
+  }
+  function focusPoints() {
+    return Array.prototype.map.call(document.querySelectorAll('#focusChips .chip.on'), function (el) { return el.dataset.v; });
+  }
+  function ensureCaseIdentity() {
+    if (!state.case_id) state.case_id = genCaseId();
+    if ($('asOfDate') && !$('asOfDate').value) $('asOfDate').value = new Date().toISOString().slice(0, 10);
+    if (state.reviewed && state.reviewed.document_name && $('caseTitle') && !$('caseTitle').value.trim()) {
+      $('caseTitle').value = state.reviewed.document_name.replace(/\.(pdf|docx?)$/i, '') + ' | ' + ($('reviewMode').value || 'Policy audit');
+    }
+    if ($('caseIdLabel')) $('caseIdLabel').textContent = state.case_id;
+  }
+  function updateModeHelp() {
+    if ($('modeHelp')) $('modeHelp').textContent = MODE_HELP[$('reviewMode').value] || '';
+  }
+
+  function validateAll() {
+    var blocking = [];
+    var warning = [];
+    if (!state.reviewed) blocking.push({ field: 'reviewed_document_file', message: 'Upload the document under review first' });
+    else if (!state.reviewed.document_name) blocking.push({ field: 'document_name', message: 'Document under review is missing filename' });
+    state.refs.forEach(function (f) {
+      if (!f.source_subcategory) blocking.push({ field: 'source_subcategory', message: f.document_name + ' missing source subcategory' });
+      if (!f.document_name) blocking.push({ field: 'document_name', message: 'Unnamed file present' });
+      if (f.is_core_basis && !f.document_code) warning.push({ field: 'document_code', message: f.document_name + ' core basis: consider adding document code' });
+      if (f.source_category === 'Prior-version source' && !f.version_label) warning.push({ field: 'version_label', message: f.document_name + ' prior version: consider adding version label' });
+      if (f.parse_status === 'failed' && f.is_core_basis) blocking.push({ field: 'parse_status', message: 'Core basis parse failed: ' + f.document_name });
+      if (f.parse_status === 'partial' && !f.is_core_basis) warning.push({ field: 'overall_confidence', message: f.document_name + ' Low confidence — continue with caution' });
+    });
+    var needHist = (($('reviewScope').value || '')).indexOf('Prior versions') >= 0;
+    var hasHist = state.refs.some(function (r) { return r.source_category === 'Prior-version source'; });
+    if (needHist && !hasHist) warning.push({ field: 'Prior-version source', message: 'Scope includes prior versions, but none uploaded yet' });
+    if (!state.refs.length && !$('allowPublic').checked) warning.push({ field: 'reference_documents', message: 'No reference files and public source search is off' });
+    return { blocking: blocking, warning: warning };
+  }
+  function canStartParse() {
+    var v = validateAll();
+    var metaOk = state.refs.every(function (r) { return r.source_subcategory && r.document_name; });
+    return !!state.reviewed && metaOk && !v.blocking.some(function (b) {
+      return b.field === 'source_subcategory' || b.field === 'document_name' || b.field === 'reviewed_document_file';
+    });
+  }
+  function buildPayload() {
+    var groups = { 'Upper-rule source': [], 'Peer-process source': [], 'Prior-version source': [] };
+    state.refs.forEach(function (r) { groups[r.source_category].push(Object.assign({}, r)); });
+    var v = validateAll();
+    return {
+      case_id: state.case_id,
+      case_title: $('caseTitle').value.trim(),
+      review_mode: $('reviewMode').value,
+      review_scope: $('reviewScope').value,
+      focus_points: focusPoints(),
+      as_of_date: $('asOfDate').value,
+      allow_public_source_search: $('allowPublic').checked,
+      reviewed_document_file: state.reviewed,
+      reference_documents: state.refs.map(function (r) { return Object.assign({}, r); }),
+      reference_document_groups: groups,
+      blocking_issues: v.blocking,
+      warning_issues: v.warning,
+      status: state.status,
+      allow_export: state.allow_export
+    };
+  }
+
+  function setStatus(s) {
+    state.status = s;
+    var badge = $('statusBadge');
+    badge.className = 'badge ' + s;
+    badge.textContent = s;
+    $('stageHint').textContent = STAGE_HINT[s] || s;
+    updateButtons();
+    refresh();
+  }
+  function updateButtons() {
+    var s = state.status;
+    var coreFailed = state.refs.some(function (r) { return r.is_core_basis && r.parse_status === 'failed'; });
+    var anyParsed = state.refs.some(function (r) { return r.parse_status === 'success' || r.parse_status === 'partial'; }) ||
+      (state.reviewed && state.reviewed.parse_status === 'success');
+    $('btnParse').disabled = !(canStartParse() && ['draft', 'uploaded', 'parse_flagged', 'ready_for_review', 'manual_hold'].indexOf(s) >= 0) || s === 'parsing';
+    $('btnCompare').disabled = coreFailed || s === 'parse_flagged' || s === 'parsing' || s === 'comparing' || s === 'qc_running' || s === 'draft' || !anyParsed || s === 'manual_hold';
+    $('btnQc').disabled = (!state.compareRows.length) || s === 'qc_running' || s === 'comparing' || s === 'parsing' || s === 'manual_hold';
+    if (state.compareRows.length && (s === 'ready_for_review' || s === 'ready_for_export')) $('btnQc').disabled = false;
+    $('btnAllowExport').disabled = (s !== 'ready_for_review' && s !== 'ready_for_export');
+    // Single gate: flag + status + live results (rows + qc) — shared with click handlers
+    var exportOk = PolicyReviewProgress.canExport(state);
+    $('btnExportWord').disabled = !exportOk;
+    $('btnExportExcel').disabled = !exportOk;
+    $('btnRun').disabled = !state.reviewed || s === 'parsing' || s === 'comparing' || s === 'qc_running';
+    if (s === 'manual_hold') {
+      $('btnParse').disabled = true;
+      $('btnCompare').disabled = true;
+      $('btnQc').disabled = true;
+      $('btnRun').disabled = true;
+    }
+  }
+  function feProgress() {
+    state.feChecks.upload = !!(state.reviewed || state.refs.length);
+    state.feChecks.metadata = !state.refs.length || state.refs.every(function (r) { return r.source_subcategory; });
+    state.feChecks.mock = ['parsing', 'parse_flagged', 'comparing', 'qc_running', 'ready_for_review', 'ready_for_export'].indexOf(state.status) >= 0 || state.compareRows.length > 0;
+    var keys = ['topbar', 'upload', 'metadata', 'mock'];
+    var done = keys.filter(function (k) { return state.feChecks[k]; }).length;
+    $('feProgressText').textContent = done + '/4';
+    $('feProgressBar').style.width = (done / 4 * 100) + '%';
+  }
+
+  function renderAlerts() {
+    var v = validateAll();
+    $('blockingCount').textContent = 'Blocked ' + v.blocking.length;
+    $('warningCount').textContent = 'Warnings ' + v.warning.length;
+    var box = $('globalAlerts');
+    box.innerHTML = '';
+    v.blocking.slice(0, 4).forEach(function (b) {
+      var d = document.createElement('div');
+      d.className = 'alert error';
+      d.textContent = 'Blocked：' + b.message;
+      box.appendChild(d);
+    });
+    v.warning.slice(0, 3).forEach(function (w) {
+      var d = document.createElement('div');
+      d.className = 'alert warn';
+      d.textContent = 'Warnings：' + w.message;
+      box.appendChild(d);
+    });
+  }
+  function fileCardHtml(f, isReviewed) {
+    var block = (!isReviewed && !f.source_subcategory) || (f.is_core_basis && f.parse_status === 'failed');
+    var id = f.file_id;
+    return '<div class="file-card ' + (block ? 'block' : '') + '" data-id="' + id + '">' +
+      '<div class="file-top"><div class="file-name">' + escapeHtml(f.document_name) + '</div>' +
+      '<span class="badge ' + (f.parse_status === 'success' ? 'success' : f.parse_status === 'failed' ? 'parse_flagged' : 'uploaded') + '">' + escapeHtml(f.parse_status || 'uploaded') + '</span></div>' +
+      '<div class="file-meta"><span>' + escapeHtml(f.source_category || '') + '</span><span>' + escapeHtml(f.source_subcategory || (isReviewed ? 'Main file' : 'Subcategory missing')) + '</span>' +
+      '<span>' + (f.is_core_basis ? 'Core basis' : (f.reference_weight || 'Supporting')) + '</span>' +
+      '<span>Confidence ' + (f.overall_confidence == null ? '—' : f.overall_confidence) + '</span></div>' +
+      '<div class="file-actions">' +
+      '<button class="btn sm" type="button" data-act="edit" data-id="' + id + '">Edit metadata</button>' +
+      (isReviewed ? '' : '<button class="btn sm" type="button" data-act="reparse" data-id="' + id + '">Reparse</button>') +
+      (isReviewed ? '<button class="btn sm danger" type="button" data-act="del-reviewed" data-id="' + id + '">Delete</button>' :
+        '<button class="btn sm danger" type="button" data-act="del" data-id="' + id + '">Delete</button>') +
+      '</div></div>';
+  }
+  function renderLists() {
+    var map = {
+      'Upper-rule source': { list: 'listA', stat: 'statA' },
+      'Peer-process source': { list: 'listB', stat: 'statB' },
+      'Prior-version source': { list: 'listC', stat: 'statC' }
+    };
+    Object.keys(map).forEach(function (cat) {
+      var items = state.refs.filter(function (r) { return r.source_category === cat; });
+      $(map[cat].stat).textContent = items.length + ' file(s)';
+      $(map[cat].list).innerHTML = items.length ? items.map(function (f) { return fileCardHtml(f, false); }).join('') : '<div class="empty">No files in this group</div>';
+    });
+    if (state.reviewed) {
+      var rv = Object.assign({}, state.reviewed, {
+        source_category: state.reviewed.source_category || 'Document under review',
+        source_subcategory: state.reviewed.source_subcategory || 'Main file',
+        is_core_basis: true,
+        reference_weight: state.reviewed.reference_weight || 'Under review',
+        file_id: 'REVIEWED'
+      });
+      $('reviewedSlot').innerHTML = fileCardHtml(rv, true);
+    } else {
+      $('reviewedSlot').innerHTML = '<div class="empty">No document under review yet</div>';
+    }
+  }
+  function renderMiddle() {
+    if (!state.parseLog.length) $('parseProgress').innerHTML = '<div class="empty">Parse not started</div>';
+    else $('parseProgress').innerHTML = state.parseLog.map(function (l) {
+      return '<div class="alert ' + l.type + '">' + escapeHtml(l.text) + '</div>';
+    }).join('');
+    if (state.reviewed && (state.reviewed.parse_status === 'success' || state.status !== 'draft')) {
+      $('clausePreview').innerHTML = '<div class="file-card"><div class="file-meta"><span>Under review §3</span><span class="diff-tag">Wording mismatch</span><span>upper-unit-measure §5</span></div>' +
+        '<div style="display:grid;grid-template-columns:1fr auto 1fr;gap:8px;font-size:13px"><div>Approval decided by business unit head…</div><div style="color:var(--muted)">↔</div><div>Requires risk & compliance countersign before submit…</div></div></div>';
+    } else $('clausePreview').innerHTML = '<div class="empty">Clause preview after parse</div>';
+    if (!state.compareRows.length) $('compareTableWrap').innerHTML = '<div class="empty">Main table after compare</div>';
+    else {
+      var rows = state.compareRows.map(function (r) {
+        return '<tr><td>' + escapeHtml(r.clause) + '</td><td>' + escapeHtml(r.cat) + '</td><td>' + escapeHtml(r.basis) + '</td><td><span class="diff-tag">' +
+          escapeHtml(r.diff) + '</span></td><td>' + escapeHtml(r.risk) + '</td><td>' + escapeHtml(r.qc) + '</td></tr>';
+      }).join('');
+      $('compareTableWrap').innerHTML = '<div style="overflow:auto;max-height:320px"><table><thead><tr><th>Clause</th><th>Source category</th><th>Reference</th><th>Diff</th><th>Risk</th><th>QC</th></tr></thead><tbody>' + rows + '</tbody></table></div>';
+    }
+  }
+  function renderRight() {
+    if (!state.report) $('reportPreview').innerHTML = '<div class="empty">Report draft structure before QC</div>';
+    else {
+      var r = state.report;
+      $('reportPreview').innerHTML = '<div class="report-block"><h3>1. Review overview</h3><p>' + escapeHtml(r.overview) + '</p></div>' +
+        '<div class="report-block"><h3>3. Assessment</h3><p>' + escapeHtml(r.opinion) + '</p></div>' +
+        '<div class="report-block"><h3>4. Key findings</h3><ul>' + r.findings.map(function (f) { return '<li>' + escapeHtml(f) + '</li>'; }).join('') + '</ul></div>' +
+        '<div class="report-block"><h3>7. Revision suggestions</h3><ul>' + r.suggestions.map(function (f) { return '<li>' + escapeHtml(f) + '</li>'; }).join('') + '</ul></div>' +
+        '<div class="hint">This report is an AI-assisted draft and requires human review</div>';
+    }
+    if (!state.qc) $('qcPanel').innerHTML = '<div class="empty">QC not run</div>';
+    else {
+      var qcOverall = escapeHtml(String(state.qc.qc_overall == null ? '' : state.qc.qc_overall));
+      $('qcPanel').innerHTML = '<div class="alert ' + (state.qc.qc_overall === 'pass' ? 'ok' : 'warn') + '">qc_overall = ' + qcOverall + '</div>' +
+        state.qc.qc_issues.map(function (i) {
+          return '<div class="qc-item ' + (state.qc.qc_overall === 'flag' ? 'flag' : '') + '"><strong>' + escapeHtml(i.issue_no) + '</strong> · ' +
+            escapeHtml(i.issue_type) + '<br/>' + escapeHtml(i.issue_detail) + '</div>';
+        }).join('');
+    }
+    $('allowExportChk').checked = state.allow_export;
+    var exportReady = PolicyReviewProgress.canExport(state);
+    $('exportHint').textContent = exportReady
+      ? 'Export allowed: use top bar "Export report (.doc)" / "Export table (.xls)" (HTML-wrapped, not native Office).'
+      : (state.allow_export && state.status === 'ready_for_export'
+        ? 'Status is exportable but compare/QC results are missing — re-run Start review.'
+        : 'After Start review, export is confirmed automatically; you can also click "Allow export".');
+    $('exportHint').className = 'alert ' + (exportReady ? 'ok' : 'info');
+  }
+  function refresh() {
+    ensureCaseIdentity();
+    updateModeHelp();
+    $('caseTitleLabel').textContent = $('caseTitle').value.trim() || '—';
+    $('caseIdLabel').textContent = state.case_id;
+    $('updatedLabel').textContent = 'Updated ' + nowLabel();
+    $('payloadView').textContent = JSON.stringify(buildPayload(), null, 2);
+    renderAlerts();
+    renderLists();
+    renderMiddle();
+    renderRight();
+    updateButtons();
+    feProgress();
+  }
+
+  function addRef(file, category) {
+    if (!extOk(file.name)) { alert('Only .doc / .docx / .pdf supported'); return; }
+    var id = 'REF-' + String(seq++).padStart(3, '0');
+    var rec = {
+      file_id: id, document_name: file.name, document_title: '', source_category: category, source_subcategory: '',
+      document_code: '', version_label: '', effective_date: '', is_core_basis: category === 'Upper-rule source',
+      reference_weight: category === 'Upper-rule source' ? 'Core basis' : 'Supporting basis', parse_status: 'uploaded', overall_confidence: null
+    };
+    state.refs.push(rec);
+    if (state.status === 'draft') setStatus('uploaded');
+    openDrawer(id, false);
+    refresh();
+  }
+  function setReviewed(file) {
+    if (!extOk(file.name)) { alert('Only .doc / .docx / .pdf supported'); return; }
+    state.reviewed = {
+      file_id: 'REV-001', document_name: file.name, document_title: '', source_category: 'Document under review', source_subcategory: 'Main file',
+      document_code: '', version_label: '', effective_date: '', type: (file.name.split('.').pop() || '').toLowerCase(),
+      parse_status: 'uploaded', overall_confidence: null, clause_count: null, is_core_basis: true, reference_weight: 'Under review'
+    };
+    if (state.status === 'draft') setStatus('uploaded');
+    openDrawer('REVIEWED', true);
+    refresh();
+  }
+  function openDrawer(id, isReviewed) {
+    state.editingReviewed = !!isReviewed || id === 'REVIEWED';
+    state.editingId = id;
+    var f;
+    if (state.editingReviewed) {
+      f = state.reviewed;
+      if (!f) return;
+      $('drawerTitle').textContent = 'Edit document metadata';
+      $('m_cat').value = f.source_category || 'Document under review';
+      $('m_sub_label').textContent = 'File type *';
+      $('m_core_wrap').style.display = 'none';
+    } else {
+      f = state.refs.find(function (r) { return r.file_id === id; });
+      if (!f) return;
+      $('drawerTitle').textContent = 'Edit reference metadata';
+      $('m_cat').value = f.source_category;
+      $('m_sub_label').textContent = 'Source subcategory *';
+      $('m_core_wrap').style.display = 'flex';
+    }
+    $('m_name').value = f.document_name || '';
+    var cat = state.editingReviewed ? 'Document under review' : f.source_category;
+    var opts = SUBCATS[cat] || ['Other'];
+    $('m_sub').innerHTML = opts.map(function (s) { return '<option value="' + s + '">' + s + '</option>'; }).join('');
+    $('m_sub').value = f.source_subcategory || opts[0];
+    if (!f.source_subcategory) $('m_sub').selectedIndex = 0;
+    $('m_title').value = f.document_title || '';
+    $('m_code').value = f.document_code || '';
+    $('m_ver').value = f.version_label || '';
+    $('m_eff').value = f.effective_date || '';
+    $('m_weight').value = f.reference_weight || (state.editingReviewed ? 'Under review' : 'Supporting basis');
+    $('m_core').checked = !!f.is_core_basis;
+    $('drawerError').style.display = 'none';
+    $('drawerMask').classList.add('open');
+  }
+  function closeDrawer() {
+    $('drawerMask').classList.remove('open');
+    state.editingId = null;
+    state.editingReviewed = false;
+  }
+
+  function bindDrop(el, onFiles) {
+    if (!el) return;
+    ['dragenter', 'dragover'].forEach(function (ev) {
+      el.addEventListener(ev, function (e) { e.preventDefault(); e.stopPropagation(); el.classList.add('dragover'); });
+    });
+    ['dragleave', 'drop'].forEach(function (ev) {
+      el.addEventListener(ev, function (e) { e.preventDefault(); e.stopPropagation(); el.classList.remove('dragover'); });
+    });
+    el.addEventListener('drop', function (e) {
+      var files = e.dataTransfer && e.dataTransfer.files ? Array.prototype.slice.call(e.dataTransfer.files) : [];
+      onFiles(files);
+    });
+  }
+
+  $('focusChips').addEventListener('click', function (e) {
+    var t = e.target.closest('.chip'); if (!t) return; t.classList.toggle('on'); refresh();
+  });
+  $('btnReviewedUpload').onclick = function () { $('reviewedFile').click(); };
+  $('reviewedFile').onchange = function () {
+    var f = $('reviewedFile').files[0]; if (!f) return; setReviewed(f); $('reviewedFile').value = '';
+  };
+  bindDrop($('dropReviewed'), function (files) {
+    var ok = files.filter(function (f) { return extOk(f.name); });
+    if (!ok.length) { alert('Only .doc / .docx / .pdf supported'); return; }
+    setReviewed(ok[0]);
+  });
+  document.querySelectorAll('[data-upload]').forEach(function (btn) {
+    btn.addEventListener('click', function () {
+      var cat = btn.getAttribute('data-upload');
+      var input = cat === 'Upper-rule source' ? $('fileA') : cat === 'Peer-process source' ? $('fileB') : $('fileC');
+      input.onchange = function () {
+        Array.prototype.forEach.call(input.files, function (file) { addRef(file, cat); });
+        input.value = '';
+      };
+      input.click();
+    });
+  });
+  bindDrop($('dropA'), function (files) { files.forEach(function (f) { if (extOk(f.name)) addRef(f, 'Upper-rule source'); }); });
+  bindDrop($('dropB'), function (files) { files.forEach(function (f) { if (extOk(f.name)) addRef(f, 'Peer-process source'); }); });
+  bindDrop($('dropC'), function (files) { files.forEach(function (f) { if (extOk(f.name)) addRef(f, 'Prior-version source'); }); });
+
+  document.body.addEventListener('click', function (e) {
+    var btn = e.target.closest('[data-act]'); if (!btn) return;
+    var id = btn.getAttribute('data-id');
+    var act = btn.getAttribute('data-act');
+    if (act === 'edit') { openDrawer(id, id === 'REVIEWED'); return; }
+    if (act === 'del-reviewed') { state.reviewed = null; refresh(); return; }
+    if (act === 'del') { state.refs = state.refs.filter(function (r) { return r.file_id !== id; }); refresh(); return; }
+    if (act === 'reparse') {
+      var f = state.refs.find(function (r) { return r.file_id === id; }); if (!f) return;
+      f.parse_status = 'parsing'; f.overall_confidence = null; setStatus('parsing');
+      state.parseLog.push({ type: 'info', text: 'Reparse ' + f.document_name + '…' }); refresh();
+      setTimeout(function () {
+        f.parse_status = f.is_core_basis ? 'success' : 'partial';
+        f.overall_confidence = f.is_core_basis ? 0.92 : 0.71;
+        state.parseLog.push({ type: f.parse_status === 'success' ? 'ok' : 'warn', text: f.document_name + ' → ' + f.parse_status });
+        setStatus('uploaded'); refresh();
+      }, 700);
+    }
+  });
+
+  $('drawerCancel').onclick = closeDrawer;
+  $('drawerMask').addEventListener('click', function (e) { if (e.target === $('drawerMask')) closeDrawer(); });
+  $('drawerSave').onclick = function () {
+    var name = $('m_name').value.trim();
+    var sub = $('m_sub').value;
+    if (!name || !sub) {
+      $('drawerError').style.display = 'block';
+      $('drawerError').textContent = 'Blocked: filename and subcategory are required';
+      return;
+    }
+    if (state.editingReviewed) {
+      if (!state.reviewed) return;
+      state.reviewed.document_name = name;
+      state.reviewed.source_category = 'Document under review';
+      state.reviewed.source_subcategory = sub;
+      state.reviewed.document_title = $('m_title').value.trim();
+      state.reviewed.document_code = $('m_code').value.trim();
+      state.reviewed.version_label = $('m_ver').value.trim();
+      state.reviewed.effective_date = $('m_eff').value;
+      state.reviewed.reference_weight = $('m_weight').value || 'Under review';
+      state.reviewed.is_core_basis = true;
+    } else {
+      var f = state.refs.find(function (r) { return r.file_id === state.editingId; }); if (!f) return;
+      f.document_name = name;
+      f.source_subcategory = sub;
+      f.document_title = $('m_title').value.trim();
+      f.document_code = $('m_code').value.trim();
+      f.version_label = $('m_ver').value.trim();
+      f.effective_date = $('m_eff').value;
+      f.reference_weight = $('m_weight').value;
+      f.is_core_basis = $('m_core').checked;
+    }
+    closeDrawer();
+    if (state.status === 'draft') setStatus('uploaded');
+    refresh();
+  };
+
+  function storageKey() { return 'irw_oneshot_' + (state.case_id || 'draft'); }
+  $('btnSave').onclick = function () {
+    ensureCaseIdentity();
+    if (state.status === 'draft' && state.reviewed) setStatus('uploaded');
+    try {
+      var payload = PolicyReviewProgress.buildSavePayload(state, {
+        title: $('caseTitle').value,
+        as_of_date: $('asOfDate').value,
+        review_mode: $('reviewMode').value,
+        review_scope: $('reviewScope').value
+      });
+      localStorage.setItem(storageKey(), JSON.stringify(payload));
+      alert('Progress saved in this browser (form/metadata only — no compare/QC).\nRe-run Start review after refresh before export.\nKey: ' + storageKey());
+    } catch (e) { alert('This browser cannot write local storage: ' + (e.message || e)); }
+    refresh();
+  };
+
+  function doParse(done) {
+    if (!canStartParse()) { alert('Upload the document under review and complete metadata for all references'); if (done) done(false); return; }
+    setStatus('parsing');
+    state.parseLog = [{ type: 'info', text: 'Starting full parse (Mock)…' }];
+    if (state.reviewed) state.reviewed.parse_status = 'parsing';
+    state.refs.forEach(function (r) { r.parse_status = 'parsing'; r.overall_confidence = null; });
+    refresh();
+    setTimeout(function () {
+      var flagged = false;
+      if (state.reviewed) {
+        state.reviewed.parse_status = 'success';
+        state.reviewed.overall_confidence = 0.94;
+        state.reviewed.clause_count = 42;
+        state.parseLog.push({ type: 'ok', text: 'Document parsed · clauses: ' + state.reviewed.clause_count });
+      }
+      state.refs.forEach(function (r, idx) {
+        var forceFail = /fail|broken/.test(r.document_name) && r.is_core_basis;
+        if (forceFail) {
+          r.parse_status = 'failed'; r.overall_confidence = 0.21; flagged = true;
+          state.parseLog.push({ type: 'error', text: 'Core basis failed: ' + r.document_name });
+        } else if (!r.is_core_basis && idx % 3 === 2) {
+          r.parse_status = 'partial'; r.overall_confidence = 0.68;
+          state.parseLog.push({ type: 'warn', text: r.document_name + ' partial (non-core, warning)' });
+        } else {
+          r.parse_status = 'success';
+          r.overall_confidence = Math.round((0.9 + Math.random() * 0.08) * 100) / 100;
+          state.parseLog.push({ type: 'ok', text: r.document_name + ' success' });
+        }
+      });
+      setStatus(flagged ? 'parse_flagged' : 'uploaded');
+      if (!flagged) state.parseLog.push({ type: 'ok', text: 'Parse done — ready to compare' });
+      refresh();
+      if (done) done(!flagged);
+    }, 700);
+  }
+  function doCompare(done) {
+    if (state.status === 'parse_flagged') { if (done) done(false); return; }
+    setStatus('comparing');
+    state.parseLog.push({ type: 'info', text: 'Comparing (Mock)…' });
+    state.result_source = 'local_mock';
+    refresh();
+    setTimeout(function () {
+      state.compareRows = [
+        { clause: '§3 Approval authority', cat: 'Upper-rule source', basis: 'upper-unit-measure §5', diff: 'Wording mismatch', risk: 'Control point not fully carried over', qc: 'pending' },
+        { clause: '§8 Roles & duties', cat: 'Peer-process source', basis: 'Duty matrix §2', diff: 'Process gap', risk: 'Role boundary unclear', qc: 'pending' },
+        { clause: '§12 Scope of application', cat: 'Prior-version source', basis: 'Prior version §10', diff: 'Changed vs prior', risk: 'Scope expanded — confirm', qc: 'pending' }
+      ];
+      state.report = {
+        overview: 'Review of "' + ($('caseTitle').value || 'document under review') + '" as ' + ($('reviewMode').value || 'policy audit') + ' (offline draft). As-of: ' + ($('asOfDate').value || '—') + '. ',
+        opinion: 'Overall framework is complete, but approval authority and role handoffs need further confirmation.',
+        findings: ['F-01 Approval wording differs from upper-level requirements', 'F-02 Peer role/duty handoff incomplete', 'F-03 Scope expanded vs prior version'],
+        suggestions: ['Align approval countersign with upper rules', 'Add RACI/cross-duty matrix', 'List diffs vs prior version separately']
+      };
+      setStatus('qc_running'); refresh();
+      setTimeout(function () {
+        state.qc = {
+          qc_overall: 'flag',
+          qc_issues: [
+            { issue_no: 'QC-01', issue_type: 'Report vs table consistency', issue_detail: 'Main table 3 findings aligned with report F-01–F-03 (Mock)' },
+            { issue_no: 'QC-02', issue_type: 'Cautious wording', issue_detail: 'Uses cautious wording such as 'insufficient handoff'' }
+          ]
+        };
+        state.compareRows = state.compareRows.map(function (r) { return Object.assign({}, r, { qc: 'pass' }); });
+        setStatus('ready_for_review');
+        state.parseLog.push({ type: 'ok', text: 'QC done → ready_for_review' });
+        refresh();
+        if (done) done(true);
+      }, 500);
+    }, 600);
+  }
+
+  $('btnParse').onclick = function () { doParse(null); };
+  $('btnCompare').onclick = function () { doCompare(null); };
+  $('btnQc').onclick = function () {
+    if (!state.compareRows.length) return;
+    setStatus('qc_running');
+    setTimeout(function () {
+      state.qc = state.qc || { qc_overall: 'pass', qc_issues: [] };
+      setStatus('ready_for_review'); refresh();
+    }, 300);
+  };
+  $('btnAllowExport').onclick = function () {
+    state.allow_export = true;
+    $('allowExportChk').checked = true;
+    setStatus('ready_for_export');
+  };
+  $('allowExportChk').onchange = function () {
+    state.allow_export = $('allowExportChk').checked;
+    if (state.allow_export && state.status === 'ready_for_review') setStatus('ready_for_export');
+    if (!state.allow_export && state.status === 'ready_for_export') setStatus('ready_for_review');
+    refresh();
+  };
+  $('btnHold').onclick = function () {
+    if (state.status === 'manual_hold') {
+      setStatus(state.prevStatusBeforeHold || 'uploaded');
+      state.prevStatusBeforeHold = null;
+      $('btnHold').textContent = 'Hold';
+    } else {
+      state.prevStatusBeforeHold = state.status;
+      setStatus('manual_hold');
+      $('btnHold').textContent = 'Resume';
+    }
+  };
+  $('btnNewCase').onclick = function () {
+    if (!confirm('Clear this one-shot task progress?')) return;
+    state.case_id = genCaseId();
+    state.reviewed = null; state.refs = []; state.allow_export = false;
+    state.parseLog = []; state.compareRows = []; state.report = null; state.qc = null;
+  state.result_source = 'unknown';
+    $('caseTitle').value = '';
+    $('asOfDate').value = new Date().toISOString().slice(0, 10);
+    $('allowExportChk').checked = false;
+    $('btnHold').textContent = 'Hold';
+    setStatus('draft'); refresh();
+  };
+
+  async function getRunMode() {
+    var h = document.getElementById('runModeValue');
+    var mode = (h && h.value === 'n8n') ? 'n8n' : 'local';
+    return mode;
+  }
+  function setRunMode(mode) {
+    mode = (mode === 'n8n') ? 'n8n' : 'local';
+    var h = document.getElementById('runModeValue');
+    if (h) h.value = mode;
+    try { localStorage.setItem('irw_run_mode', mode); } catch (e) {}
+    var bL = document.getElementById('btnModeLocal');
+    var bN = document.getElementById('btnModeN8n');
+    if (bL) {
+      if (mode === 'local') bL.classList.add('mode-on'); else bL.classList.remove('mode-on');
+    }
+    if (bN) {
+      if (mode === 'n8n') bN.classList.add('mode-on'); else bN.classList.remove('mode-on');
+    }
+    var btn = document.getElementById('btnRun');
+    if (btn) btn.textContent = mode === 'n8n' ? 'Start review (n8n)' : 'Start review (Local Mock)';
+    var hint = mode === 'n8n'
+      ? ('n8n mode selected → click "Run n8n review" · URL=' + (getWebhookUrl() || '(empty)'))
+      : 'Local Mock mode (no backend)';
+    setBackendHint(hint, mode === 'n8n' ? 'warn' : '');
+    return mode;
+  }
+  function syncModeUi() {
+    setRunMode(getRunMode());
+  }
+  function getWebhookUrl() {
+    var el = $('n8nWebhookUrl');
+    return el ? String(el.value || '').trim() : '';
+  }
+  function setBackendHint(text, cls) {
+    var el = $('backendHint');
+    if (!el) return;
+    el.className = cls || '';
+    el.textContent = text;
+  }
+  function buildN8nCaseBody() {
+    // Fields expected by n8n Normalize+Validate (aligned with integration JSON)
+    var reviewed = state.reviewed || {};
+    return {
+      case_id: state.case_id,
+      case_title: ($('caseTitle').value || '').trim() || ((reviewed.document_name || 'Document under review').replace(/\.(pdf|docx?)$/i, '')),
+      review_mode: $('reviewMode').value || 'Policy audit',
+      review_scope: $('reviewScope').value || '',
+      focus_points: focusPoints(),
+      as_of_date: $('asOfDate').value || new Date().toISOString().slice(0, 10),
+      allow_public_source_search: !!( $('allowPublic') && $('allowPublic').checked ),
+      reviewed_document: {
+        file_name: reviewed.document_name || reviewed.file_name || 'Document under review-Submission draft.docx',
+        document_title: reviewed.document_title || (reviewed.document_name || '').replace(/\.(pdf|docx?)$/i, '') || 'Document under review',
+        version_label: reviewed.version_label || 'Submission draft',
+        document_code: reviewed.document_code || ''
+      },
+      reference_documents: (state.refs || []).map(function (r) {
+        return {
+          file_name: r.document_name || r.file_name || 'Reference.docx',
+          document_title: r.document_title || '',
+          source_category: r.source_category,
+          source_subcategory: r.source_subcategory || '',
+          is_core_basis: !!r.is_core_basis,
+          reference_weight: r.reference_weight || (r.is_core_basis ? 'Core basis' : 'Supporting basis'),
+          version_label: r.version_label || '',
+          document_code: r.document_code || ''
+        };
+      })
+    };
+  }
+  function mapN8nResult(data) {
+    // Compatible with Respond OK / direct Dify normalize output
+    var root = data || {};
+    if (root.data && root.data.outputs) root = Object.assign({}, root, root.data.outputs);
+    var main = root.excel_main_table || [];
+    if ((!main || !main.length) && root.artifacts && root.artifacts.excel_main_csv) {
+      // csv only - leave empty table, still show status
+      main = main || [];
+    }
+    if (typeof main === 'string') {
+      try { main = JSON.parse(main); } catch (e) { main = []; }
+    }
+    var ver = root.excel_version_table || [];
+    if (typeof ver === 'string') { try { ver = JSON.parse(ver); } catch (e) { ver = []; } }
+    var qc = root.qc_result || root.qc || null;
+    if (typeof qc === 'string') { try { qc = JSON.parse(qc); } catch (e) { qc = null; } }
+    if (!qc && root.qc_json) {
+      try { qc = typeof root.qc_json === 'string' ? JSON.parse(root.qc_json) : root.qc_json; } catch (e) {}
+    }
+    var report = root.word_report || root.report || null;
+    if (typeof report === 'string') { try { report = JSON.parse(report); } catch (e) { report = null; } }
+    if (!report && root.word_report_json) {
+      try { report = typeof root.word_report_json === 'string' ? JSON.parse(root.word_report_json) : root.word_report_json; } catch (e) {}
+    }
+
+    state.compareRows = (main || []).map(function (r) {
+      return {
+        clause: (r.reviewed_clause_no || '') + (r.reviewed_locator ? ' · ' + r.reviewed_locator : ''),
+        cat: r.source_category || '',
+        basis: ((r.reference_document_name || '') + ' ' + (r.reference_clause_no || '')).trim(),
+        diff: r.difference_type || r.difference_summary || '',
+        risk: r.risk_impact || '',
+        qc: r.qc_status || 'pass',
+        summary: r.difference_summary || '',
+        suggestion: r.suggested_revision || ''
+      };
+    });
+
+    if (report) {
+      var findings = [];
+      if (Array.isArray(report.major_findings)) {
+        findings = report.major_findings.map(function (f) {
+          return (f.finding_no || '') + ' ' + (f.title || f.finding_title || '');
+        });
+      } else if (Array.isArray(report.findings)) {
+        findings = report.findings;
+      }
+      state.report = {
+        overview: report.overview || report.report_summary || '',
+        opinion: report.overall_assessment || report.opinion || '',
+        findings: findings,
+        suggestions: report.revision_suggestions || report.suggestions || []
+      };
+    } else if (state.compareRows.length) {
+      state.report = {
+        overview: 'Compared via n8n backend (case ' + state.case_id + '）. ',
+        opinion: (qc && qc.qc_overall === 'pass') ? 'QC passed — ready for human review/export.' : 'Review the main table manually. ',
+        findings: state.compareRows.slice(0, 5).map(function (r, i) {
+          return 'F-0' + (i + 1) + ' ' + (r.diff || r.summary || 'Diff');
+        }),
+        suggestions: state.compareRows.slice(0, 5).map(function (r) { return r.suggestion || 'See main-table suggestions'; })
+      };
+    }
+
+    state.qc = qc || { qc_overall: root.qc_overall || 'flag', qc_issues: [] };
+    state.n8nRaw = root;
+    state.versionRows = ver || [];
+    state.result_source = 'n8n';
+
+    var allow = root.allow_export;
+    if (allow == null && qc) allow = !!qc.allow_export_recommendation;
+    if (allow == null) allow = state.compareRows.length > 0;
+    state.allow_export = !!allow;
+    if ($('allowExportChk')) $('allowExportChk').checked = state.allow_export;
+
+    var st = root.status || (state.allow_export ? 'ready_for_export' : 'ready_for_review');
+    if (root.ok === false) {
+      setStatus('manual_hold');
+      state.parseLog.push({ type: 'error', text: (root.message || root.error_code || 'n8n returned failure') + '' });
+      return false;
+    }
+    if (st === 'ready_for_export' || st === 'ready_for_review') setStatus(st);
+    else if (state.allow_export) setStatus('ready_for_export');
+    else setStatus('ready_for_review');
+    return true;
+  }
+  function runN8nReview() {
+    var url = getWebhookUrl();
+    if (!url) {
+      alert('Enter n8n Webhook URL (open the Webhook node and copy Production URL)');
+      setBackendHint('Missing Webhook URL', 'err');
+      return;
+    }
+    if (!/^https?:\/\//i.test(url)) {
+      alert('Webhook URL must start with http:// or https://');
+      return;
+    }
+    ensureCaseIdentity();
+    var v = validateAll();
+    if (v.blocking.length) {
+      alert('Fix these first:\n' + v.blocking.slice(0, 6).map(function (b) { return b.message; }).join('\n'));
+      return;
+    }
+    var body = buildN8nCaseBody();
+    if (!body.reference_documents.length) {
+      if (!confirm('No reference files yet. Still send to n8n? (backend may fail without refs)')) return;
+    }
+    setStatus('comparing');
+    state.parseLog = [{ type: 'info', text: 'n8n Webhook submitted…' }, { type: 'info', text: url }];
+    setBackendHint('Requesting… (Dify may take 30s–2min)', 'warn');
+    refresh();
+    $('btnRun').disabled = true;
+
+    var ctrl = (typeof AbortController !== 'undefined') ? new AbortController() : null;
+    var timer = setTimeout(function () { if (ctrl) ctrl.abort(); }, 180000);
+
+    fetch(url, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
+      body: JSON.stringify(body),
+      signal: ctrl ? ctrl.signal : undefined
+    }).then(function (res) {
+      return res.text().then(function (text) {
+        var data = null;
+        try { data = text ? JSON.parse(text) : null; } catch (e) { data = { ok: false, message: text || ('HTTP ' + res.status) }; }
+        return { res: res, data: data, text: text };
+      });
+    }).then(function (pack) {
+      clearTimeout(timer);
+      var data = pack.data || {};
+      if (!pack.res.ok) {
+        state.parseLog.push({ type: 'error', text: 'HTTP ' + pack.res.status + ' · ' + (data.message || data.error_code || pack.text || '').toString().slice(0, 300) });
+        setStatus('manual_hold');
+        setBackendHint('n8n HTTP ' + pack.res.status, 'err');
+        refresh();
+        return;
+      }
+      state.parseLog.push({ type: 'ok', text: 'n8n OK, mapping results…' });
+      var ok = mapN8nResult(data);
+      if (ok) {
+        state.parseLog.push({ type: 'ok', text: 'Backend review done · main table ' + state.compareRows.length + ' rows · mode=' + (data.mode || 'n8n') });
+        setBackendHint('n8n connected · main table ' + state.compareRows.length + ' rows', 'ok');
+        state.feChecks.mock = true;
+      } else {
+        setBackendHint('n8n business failure', 'err');
+      }
+      refresh();
+    }).catch(function (err) {
+      clearTimeout(timer);
+      var msg = (err && err.name === 'AbortError') ? 'Request timeout (180s)' : ((err && err.message) || String(err));
+      state.parseLog.push({ type: 'error', text: 'Request failed: ' + msg });
+      state.parseLog.push({ type: 'warn', text: 'If opened via file://, use http://127.0.0.1 static server; ensure n8n workflow is Active and Dify is reachable.' });
+      setStatus('manual_hold');
+      setBackendHint('Request failed: ' + msg, 'err');
+      refresh();
+    }).finally(function () {
+      updateButtons();
+    });
+  }
+  function runFullReview(forceMode) {
+    ensureCaseIdentity(); refresh();
+    if (!state.reviewed) { alert('Upload the document under review first'); return; }
+    var v = validateAll();
+    if (v.blocking.length) {
+      alert('Fix these first: ' + v.blocking.slice(0, 6).map(function (b) { return b.message; }).join('; '));
+      return;
+    }
+    var mode = forceMode || getRunMode();
+    if (mode === 'n8n') {
+      var url = getWebhookUrl();
+      if (!url) {
+        alert('n8n selected but Webhook URL is empty. Paste the Production URL.');
+        setBackendHint('n8n mode but URL empty', 'err');
+        return;
+      }
+      setBackendHint('Mode=n8n, calling Webhook…', 'warn');
+      runN8nReview();
+      return;
+    }
+    setBackendHint('Mode=local → Local Mock (no n8n request)', 'warn');
+    if (!confirm('Currently Local Mock — will not call n8n/Dify. To use n8n: select n8n, fill URL, then Run n8n review. Continue with Local Mock?')) {
+      return;
+    }
+    doParse(function (parseOk) {
+      if (state.status === 'parse_flagged' || parseOk === false) return;
+      doCompare(function () {
+        if (state.status === 'ready_for_review' || state.status === 'ready_for_export') {
+          state.allow_export = true;
+          if ($('allowExportChk')) $('allowExportChk').checked = true;
+          if (state.status === 'ready_for_review') setStatus('ready_for_export');
+        }
+        state.feChecks.mock = true;
+        setBackendHint('Local Mock done (n8n not called)', 'ok');
+        refresh();
+      });
+    });
+  }
+  function downloadBlob(name, mime, content) {
+    var blob = new Blob([content], { type: mime });
+    var a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = name;
+    document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(function () { URL.revokeObjectURL(a.href); }, 1500);
+  }
+  function stamp() {
+    var d = new Date();
+    function p(n) { return String(n).padStart(2, '0'); }
+    return d.getFullYear() + p(d.getMonth() + 1) + p(d.getDate()) + '-' + p(d.getHours()) + p(d.getMinutes());
+  }
+  function safeName(s) { return String(s || 'task').replace(/[\\/:*?"<>|]+/g, '_').slice(0, 40); }
+  function buildWordHtml() {
+    var title = $('caseTitle').value.trim() || 'Document under review';
+    var src = resultSource();
+    var lines = [
+      'Policy review report (draft · ' + src + '）',
+      'Case：' + state.case_id,
+      'Task: ' + title,
+      'Mode: ' + $('reviewMode').value,
+      'As-of: ' + $('asOfDate').value,
+      'Scope: ' + $('reviewScope').value,
+      'Result source：' + src,
+      '',
+      resultSourceDisclaimer(src),
+      '[Boundary] AI-assisted draft; human review required; not a formal legal/audit conclusion.',
+      '',
+      '1. Review overview',
+      (state.report && state.report.overview) || '（None yet）',
+      '',
+      '3. Assessment',
+      (state.report && state.report.opinion) || '（None yet）',
+      '',
+      '4. Key findings'
+    ];
+    ((state.report && state.report.findings) || []).forEach(function (f) { lines.push('- ' + f); });
+    lines.push(''); lines.push('7. Revision suggestions');
+    ((state.report && state.report.suggestions) || []).forEach(function (f) { lines.push('- ' + f); });
+    var paras = lines.map(function (line) { return '<p>' + escapeHtml(line || ' ') + '</p>'; }).join('');
+    return '<html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:w="urn:schemas-microsoft-com:office:word"><head><meta charset="utf-8"><title>Policy review report</title></head><body>' + paras + '</body></html>';
+  }
+  function buildExcelHtml() {
+    var src = resultSource();
+    var head = ['Clause', 'Source category', 'Reference', 'Diff', 'Risk', 'QC'];
+    var rows = [head].concat((state.compareRows || []).map(function (r) {
+      return [r.clause, r.cat, r.basis, r.diff, r.risk, r.qc];
+    }));
+    var body = rows.map(function (row) {
+      return '<tr>' + row.map(function (c) { return '<td>' + escapeHtml(c) + '</td>'; }).join('') + '</tr>';
+    }).join('');
+    var banner = '<p>' + escapeHtml(resultSourceDisclaimer(src)) + ' Human review required; not a formal legal/audit conclusion. </p>';
+    return '<html><head><meta charset="utf-8"><title>Clause comparison</title></head><body>' + banner + '<table border="1">' + body + '</table></body></html>';
+  }
+  
+  
+  (function initBackendBar() {
+    try {
+      var saved = localStorage.getItem('irw_n8n_webhook_url');
+      if (saved && $('n8nWebhookUrl')) $('n8nWebhookUrl').value = saved;
+      var mode = localStorage.getItem('irw_run_mode') || 'local';
+      setRunMode(mode);
+    } catch (e) { setRunMode('local'); }
+
+    if ($('btnModeLocal')) $('btnModeLocal').onclick = function () {
+      setRunMode('local');
+      alert('Switched to Local Mock. For live mode click "Mode: n8n Dify".');
+    };
+    if ($('btnModeN8n')) $('btnModeN8n').onclick = function () {
+      setRunMode('n8n');
+      var url = getWebhookUrl();
+      if (!url) {
+        alert('Switched to n8n Dify. Paste Webhook URL, then click "Run n8n review".');
+      } else {
+        alert('Switched to n8n Dify. Click "Run n8n review" to start (do not use Parse only).');
+      }
+    };
+    if ($('btnSaveBackend')) $('btnSaveBackend').onclick = function () {
+      try {
+        localStorage.setItem('irw_n8n_webhook_url', getWebhookUrl());
+        localStorage.setItem('irw_run_mode', getRunMode());
+        setBackendHint('Saved: mode=' + getRunMode() + ' · URL stored', 'ok');
+      } catch (e) { alert('Cannot write to localStorage'); }
+    };
+    if ($('btnRunN8n')) $('btnRunN8n').onclick = function () {
+      setRunMode('n8n');
+      if (!getWebhookUrl()) {
+        alert('Enter n8n Webhook URL (Production)');
+        return;
+      }
+      runFullReview('n8n');
+    };
+    if ($('btnPingBackend')) $('btnPingBackend').onclick = function () {
+      alert('Current mode=' + getRunMode() + ' | URL=' + (getWebhookUrl() || 'empty') + ' | Live: 1) mode n8n  2) fill URL  3) Run n8n review | Serve over http | n8n must be Published');
+    };
+  })();
+
+  $('btnRun').onclick = function () { syncModeUi(); runFullReview(getRunMode()); };
+  $('btnExportWord').onclick = function () {
+    if (!PolicyReviewProgress.canExport(state)) return alert('Finish review and allow export first (needs compare + QC results)');
+    var name = 'policy_review_report_' + safeName($('caseTitle').value) + '_' + state.case_id + '_' + stamp() + '.doc';
+    downloadBlob(name, 'application/msword;charset=utf-8', buildWordHtml());
+  };
+  $('btnExportExcel').onclick = function () {
+    if (!PolicyReviewProgress.canExport(state)) return alert('Finish review and allow export first (needs compare + QC results)');
+    var name = 'clause_compare_table_' + safeName($('caseTitle').value) + '_' + state.case_id + '_' + stamp() + '.xls';
+    downloadBlob(name, 'application/vnd.ms-excel;charset=utf-8', buildExcelHtml());
+  };
+
+  ['caseTitle', 'reviewMode', 'asOfDate', 'reviewScope', 'allowPublic', 'manualComment'].forEach(function (id) {
+    $(id).addEventListener('change', refresh);
+    $(id).addEventListener('input', refresh);
+  });
+  $('reviewMode').addEventListener('change', updateModeHelp);
+
+  // restore oneshot local draft if any latest key (via PolicyReviewProgress — testable contract)
+  try {
+    var keys = Object.keys(localStorage).filter(function (k) { return k.indexOf('irw_oneshot_') === 0; }).sort();
+    if (keys.length) {
+      var raw = JSON.parse(localStorage.getItem(keys[keys.length - 1]) || 'null');
+      var rt = PolicyReviewProgress.applyRestore(raw);
+      if (rt) {
+        state.case_id = rt.case_id;
+        state.reviewed = rt.reviewed;
+        state.refs = rt.refs;
+        state.allow_export = rt.allow_export;
+        state.compareRows = rt.compareRows;
+        state.report = rt.report;
+        state.qc = rt.qc;
+        state.result_source = rt.result_source;
+        state.status = rt.status;
+        state.parseLog = rt.parseLog;
+        if (rt.title) $('caseTitle').value = rt.title;
+        if (raw.as_of_date) $('asOfDate').value = raw.as_of_date;
+        if (raw.review_mode) $('reviewMode').value = raw.review_mode;
+        if (raw.review_scope) $('reviewScope').value = raw.review_scope;
+      }
+    }
+  } catch (e) {}
+
+  if (!$('asOfDate').value) $('asOfDate').value = new Date().toISOString().slice(0, 10);
+  if (!state.case_id) state.case_id = genCaseId();
+  setStatus(state.status || 'draft');
+  refresh();
+})();
+</script>
+</body>
+</html>
