@@ -436,7 +436,8 @@ details.adv{border:1px dashed var(--border);border-radius:8px;padding:8px 10px;b
     $('btnQc').disabled = (!state.compareRows.length) || s === 'qc_running' || s === 'comparing' || s === 'parsing' || s === 'manual_hold';
     if (state.compareRows.length && (s === 'ready_for_review' || s === 'ready_for_export')) $('btnQc').disabled = false;
     $('btnAllowExport').disabled = (s !== 'ready_for_review' && s !== 'ready_for_export');
-    var exportOk = state.allow_export && s === 'ready_for_export';
+    // Single gate: flag + status + live results (rows + qc) — shared with click handlers
+    var exportOk = PolicyReviewProgress.canExport(state);
     $('btnExportWord').disabled = !exportOk;
     $('btnExportExcel').disabled = !exportOk;
     $('btnRun').disabled = !state.reviewed || s === 'parsing' || s === 'comparing' || s === 'qc_running';
@@ -554,10 +555,13 @@ details.adv{border:1px dashed var(--border);border-radius:8px;padding:8px 10px;b
         }).join('');
     }
     $('allowExportChk').checked = state.allow_export;
-    $('exportHint').textContent = state.allow_export && state.status === 'ready_for_export'
+    var exportReady = PolicyReviewProgress.canExport(state);
+    $('exportHint').textContent = exportReady
       ? '已确认可导出：请用顶栏「导出报告 (.doc) / 导出对照表 (.xls)」（HTML 包装，非原生 Office）。'
-      : '完成「开始审查」后会自动确认可导出；也可点顶栏「确认可导出」。';
-    $('exportHint').className = 'alert ' + (state.allow_export && state.status === 'ready_for_export' ? 'ok' : 'info');
+      : (state.allow_export && state.status === 'ready_for_export'
+        ? '状态为可导出，但缺少比对/QC 结果 — 请重新「开始审查」。'
+        : '完成「开始审查」后会自动确认可导出；也可点顶栏「确认可导出」。');
+    $('exportHint').className = 'alert ' + (exportReady ? 'ok' : 'info');
   }
   function refresh() {
     ensureCaseIdentity();
@@ -1236,12 +1240,12 @@ details.adv{border:1px dashed var(--border);border-radius:8px;padding:8px 10px;b
 
   $('btnRun').onclick = function () { syncModeUi(); runFullReview(getRunMode()); };
   $('btnExportWord').onclick = function () {
-    if (!(state.allow_export && state.status === 'ready_for_export')) return alert('请先完成审查并确认可导出');
+    if (!PolicyReviewProgress.canExport(state)) return alert('请先完成审查并确认可导出（需比对与 QC 结果）');
     var name = '制度审查报告_' + safeName($('caseTitle').value) + '_' + state.case_id + '_' + stamp() + '.doc';
     downloadBlob(name, 'application/msword;charset=utf-8', buildWordHtml());
   };
   $('btnExportExcel').onclick = function () {
-    if (!(state.allow_export && state.status === 'ready_for_export')) return alert('请先完成审查并确认可导出');
+    if (!PolicyReviewProgress.canExport(state)) return alert('请先完成审查并确认可导出（需比对与 QC 结果）');
     var name = '逐条对比主表_' + safeName($('caseTitle').value) + '_' + state.case_id + '_' + stamp() + '.xls';
     downloadBlob(name, 'application/vnd.ms-excel;charset=utf-8', buildExcelHtml());
   };

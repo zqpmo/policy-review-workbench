@@ -6,7 +6,7 @@
 
 [![Node](https://img.shields.io/badge/node-%3E%3D18-brightgreen)](https://nodejs.org/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](./LICENSE)
-[![Tests](https://img.shields.io/badge/tests-7%20suites-orange)](#testing)
+[![Tests](https://img.shields.io/badge/tests-8%20suites-orange)](#testing)
 
 ## Why this exists
 
@@ -22,8 +22,8 @@ Policy/regulation review needs a **repeatable chain**: ingest clauses, compare a
 ## Quick start
 
 ```bash
-# Open the UI (self-contained single HTML + progress module)
-# double-click workbench.html  or:
+# Open the UI — needs workbench.html AND policy-review-progress.js in the same folder
+# (not a single self-contained HTML file)
 start workbench.html          # Windows
 open workbench.html           # macOS
 
@@ -33,6 +33,7 @@ node test-flow-matrix.js
 node test-dify-export.js
 node test-export-source.js     # result source + CSV header + metadata.json
 node test-progress-restore.js  # legacy exportable draft cannot restore as exportable
+node test-export-gate-wiring.js # UI buttons/clicks call canExport (not flag+status only)
 node test-case-acceptance.js   # writes CASE_ACCEPTANCE_RESULT.json
 node test-case-b.js            # merges CASE-B into the result file
 ```
@@ -45,8 +46,8 @@ If you run **only** `test-case-b.js` on a fresh tree, the scorecard is **partial
 
 | File | Role |
 |---|---|
-| `workbench.html` | Single-file UI (styles + app JS inline) |
-| `policy-review-progress.js` | Save/restore contract (form only; never results) — shared by UI + tests |
+| `workbench.html` | UI (styles + app JS inline) — **requires** sibling `policy-review-progress.js` |
+| `policy-review-progress.js` | Save/restore + **`canExport`** gate — shared by UI buttons/clicks and tests |
 | `policy-review-parse-layer.js` | Parse stub: detect type, async job status, core-basis failures |
 | `policy-review-flow-matrix.js` | Pure state machine → enabled/disabled actions |
 | `policy-review-dify-layer.js` | Build compare/QC input contract (`dify_io_v0.1`) + stub results |
@@ -90,10 +91,11 @@ Leave them empty for pure offline use.
 ```bash
 node test-parse-layer.js && node test-flow-matrix.js && node test-dify-export.js \
   && node test-export-source.js && node test-progress-restore.js \
+  && node test-export-gate-wiring.js \
   && node test-case-acceptance.js && node test-case-b.js
 ```
 
-Tests are **pure Node** (no npm install). Acceptance scripts read/write `CASE_ACCEPTANCE_RESULT.json` **next to the script**. Restore rules live in `policy-review-progress.js` (shared by UI + tests) — covers an **old draft saved as `ready_for_export` / `allow_export:true` refreshed without results**: export stays disabled until you re-run the review.
+Tests are **pure Node** (no npm install). Acceptance scripts read/write `CASE_ACCEPTANCE_RESULT.json` **next to the script**. Restore + export gating live in `policy-review-progress.js` and are **wired into** `workbench.html` (`updateButtons` + both export click handlers call `canExport`). Covers: old `ready_for_export` drafts restore disabled; **button enable and click use the same predicate** (flag + status + live rows + qc).
 
 ## Scope & safety
 

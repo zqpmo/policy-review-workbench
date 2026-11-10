@@ -6,7 +6,7 @@
 
 [![Node](https://img.shields.io/badge/node-%3E%3D18-brightgreen)](https://nodejs.org/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](./LICENSE)
-[![Tests](https://img.shields.io/badge/tests-7%20suites-orange)](#testing)
+[![Tests](https://img.shields.io/badge/tests-8%20suites-orange)](#testing)
 
 ## 为什么做这个
 
@@ -22,7 +22,8 @@
 ## 快速开始
 
 ```bash
-# 打开界面（单文件 HTML + 进度模块）
+# 打开界面 — 需同目录下同时有 workbench.html 与 policy-review-progress.js
+# （不是单文件自包含 HTML）
 start workbench.html          # Windows
 open workbench.html           # macOS
 
@@ -32,6 +33,7 @@ node test-flow-matrix.js
 node test-dify-export.js
 node test-export-source.js     # 结果来源 + CSV 表头 + metadata.json
 node test-progress-restore.js  # 旧版「可导出」进度恢复后不得再可导
+node test-export-gate-wiring.js # 界面按钮/点击调用 canExport（而非仅 flag+状态）
 node test-case-acceptance.js   # 写入 CASE_ACCEPTANCE_RESULT.json
 node test-case-b.js            # 合并 CASE-B 到记分文件
 ```
@@ -44,8 +46,8 @@ node test-case-b.js            # 合并 CASE-B 到记分文件
 
 | 文件 | 职责 |
 |---|---|
-| `workbench.html` | 单文件 UI（样式 + 业务 JS 内联） |
-| `policy-review-progress.js` | 保存/恢复契约（只存表单、不存结果）— UI 与测试共用 |
+| `workbench.html` | UI（样式 + 业务 JS 内联）— **需要**同目录 `policy-review-progress.js` |
+| `policy-review-progress.js` | 保存/恢复 + **`canExport`** 门禁 — 界面按钮/点击与测试共用 |
 | `policy-review-parse-layer.js` | 解析桩：类型检测、异步任务状态、核心依据失败 |
 | `policy-review-flow-matrix.js` | 纯状态机 → 按钮启用/禁用 |
 | `policy-review-dify-layer.js` | 比对/QC 输入契约（`dify_io_v0.1`）+ 桩结果 |
@@ -89,10 +91,11 @@ node test-case-b.js            # 合并 CASE-B 到记分文件
 ```bash
 node test-parse-layer.js && node test-flow-matrix.js && node test-dify-export.js \
   && node test-export-source.js && node test-progress-restore.js \
+  && node test-export-gate-wiring.js \
   && node test-case-acceptance.js && node test-case-b.js
 ```
 
-纯 Node，**无需 npm install**。验收脚本读写脚本旁的 `CASE_ACCEPTANCE_RESULT.json`。恢复规则在 `policy-review-progress.js`（UI 与测试共用）——覆盖**旧草稿存成 `ready_for_export` / `allow_export:true` 后无结果刷新**：导出保持禁用，直到重新审查。
+纯 Node，**无需 npm install**。验收脚本读写脚本旁的 `CASE_ACCEPTANCE_RESULT.json`。恢复与导出门禁在 `policy-review-progress.js`，并**已接入** `workbench.html`（`updateButtons` 与两个导出点击均调用 `canExport`）。覆盖：旧 `ready_for_export` 草稿恢复后禁导；**按钮启用与点击使用同一谓词**（flag + 状态 + 实时 rows + qc）。
 
 ## 范围与安全
 
