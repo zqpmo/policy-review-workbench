@@ -25,7 +25,9 @@
   }
 
   function toCsv(rows, columns) {
-    var lines = [columns.join(',')];
+    // Row 0 = disclaimer (not a data row); data starts at row 1
+    var lines = ['# 模拟数据/未读取文件正文（若来自本地 Mock）— 仅供草稿复核，非正式结论'];
+    lines.push(columns.join(','));
     (rows || []).forEach(function (r) {
       lines.push(columns.map(function (c) { return csvEscape(r[c]); }).join(','));
     });
@@ -41,6 +43,7 @@
     lines.push('被审制度: ' + (meta.case_title || meta.document_name || ''));
     lines.push('模板: standard-policy-review');
     lines.push('生成时间: ' + new Date().toISOString());
+    lines.push('【重要】若由本地 Mock/UI 生成：未读取所上传文件正文；条文与 QC 为模拟数据，不能当作对所选制度的真实分析。');
     lines.push('【边界】本报告为AI辅助审查草稿，需人工复核确认；不构成正式法律/审计结论。');
     lines.push('');
     lines.push('一、审查/审计工作概况');

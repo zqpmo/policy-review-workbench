@@ -61,7 +61,7 @@ If you run **only** `test-case-b.js` on a fresh tree, the scorecard is **partial
 - **Default mode is local Mock** — no HTTP. Choosing **n8n mode** and filling a Webhook URL will `fetch` your payload (document metadata / clause JSON) to **that URL you control**; leave empty to stay offline.
 - **Dify layer is a contract stub** (`dify_io_v0.1`); swap in a real backend only if you wire it yourself.
 - Unit + CASE tests are **offline only** (no real n8n/Dify/OA). They do not prove end-to-end backend behavior. UI logic is **inline in `workbench.html`** and is not the same code path as the tested Node modules.
-- Exported artifacts are **drafts** until human review; the tool does not issue final legal/audit determinations.
+- Exported artifacts are **drafts** until human review; the tool does not issue final legal/audit determinations. **UI and module exports embed a “mock / file bodies not read” disclaimer** inside the file so it travels with the download.
 
 ### Chain gates (summary)
 
