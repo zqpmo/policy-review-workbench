@@ -1,0 +1,1252 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>制度审查工作台｜v0.4.7</title>
+<style>
+:root{--text:#2C2C2B;--muted:#7D7A75;--canvas:#fff;--soft:#F9F8F7;--soft2:#F0EFED;--border:#E6E5E3;--blue:#2783DE;--blue-soft:#E5F2FC;--green:#46A171;--green-soft:#E8F1EC;--orange:#D5803B;--orange-soft:#FBEBDE;--red:#E56458;--red-soft:#FCE9E7;--radius:8px;--shadow:0 1px 2px rgba(0,0,0,.05),0 4px 12px rgba(0,0,0,.04)}
+*{box-sizing:border-box}body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",system-ui,sans-serif;color:var(--text);background:var(--soft);font-size:15px;line-height:1.5}
+button,input,select,textarea{font:inherit}.app{min-height:100vh;display:flex;flex-direction:column}
+.topbar{background:var(--canvas);border-bottom:1px solid var(--border);padding:10px 16px;display:flex;flex-wrap:wrap;gap:10px 14px;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:30}
+.brand h1{margin:0;font-size:17px;font-weight:650}.brand .sub{color:var(--muted);font-size:12px;font-weight:500}
+.meta-line{color:var(--muted);font-size:12px;display:flex;flex-wrap:wrap;gap:8px 12px;margin-top:2px}
+.badge{display:inline-flex;align-items:center;padding:2px 10px;border-radius:999px;font-size:12px;font-weight:600}
+.badge.draft{background:var(--soft2);color:var(--muted)}.badge.uploaded{background:var(--blue-soft);color:var(--blue)}
+.badge.parsing,.badge.comparing,.badge.qc_running{background:var(--orange-soft);color:var(--orange)}
+.badge.parse_flagged,.badge.manual_hold{background:var(--red-soft);color:var(--red)}
+.badge.ready_for_review,.badge.ready_for_export,.badge.success{background:var(--green-soft);color:var(--green)}
+.actions{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.btn{border:1px solid var(--border);background:var(--canvas);color:var(--text);border-radius:var(--radius);padding:8px 12px;min-height:38px;cursor:pointer}
+.btn:hover:not(:disabled){background:var(--soft)}.btn:disabled{opacity:.45;cursor:not-allowed}
+.btn.primary{background:var(--blue);border-color:var(--blue);color:#fff}.btn.primary:hover:not(:disabled){filter:brightness(.96)}
+.btn.danger{color:var(--red);border-color:#f0c7c3}.btn.sm{padding:4px 8px;min-height:30px;font-size:12px}
+.progress-strip{background:var(--canvas);border-bottom:1px solid var(--border);padding:8px 16px;display:flex;flex-wrap:wrap;gap:10px 16px;align-items:center;font-size:12px;color:var(--muted)}
+.progress-strip strong{color:var(--text)}.bar{width:140px;height:7px;background:var(--soft2);border-radius:999px;overflow:hidden}.bar>i{display:block;height:100%;background:var(--blue);width:0%;transition:width .25s}
+.layout{display:grid;grid-template-columns:minmax(300px,360px) minmax(0,1fr) minmax(280px,340px);gap:12px;padding:12px;flex:1}
+@media(max-width:1100px){.layout{grid-template-columns:1fr}}
+.panel{background:var(--canvas);border:1px solid var(--border);border-radius:12px;box-shadow:var(--shadow);display:flex;flex-direction:column;min-height:0}
+.panel-h{padding:12px 14px;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center;gap:8px}
+.panel-h h2{margin:0;font-size:14px;font-weight:650}.panel-b{padding:12px 14px;display:flex;flex-direction:column;gap:12px;overflow:auto}
+.field{display:flex;flex-direction:column;gap:6px}.field label{font-size:12px;color:var(--muted);font-weight:600}
+.field input,.field select,.field textarea{border:1px solid var(--border);border-radius:var(--radius);padding:8px 10px;background:#fff;color:var(--text)}
+.field textarea{min-height:72px;resize:vertical}.row-2{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.chips{display:flex;flex-wrap:wrap;gap:6px}.chip{border:1px solid var(--border);background:var(--soft);border-radius:999px;padding:4px 10px;font-size:12px;cursor:pointer;user-select:none}.chip.on{background:var(--blue-soft);border-color:#b7d8f7;color:var(--blue);font-weight:600}
+.section-title{margin:4px 0 0;font-size:13px;font-weight:650;display:flex;justify-content:space-between;align-items:center}
+.hint{font-size:12px;color:var(--muted)}.alert{border-radius:var(--radius);padding:8px 10px;font-size:13px;border:1px solid transparent}
+.alert.error{background:var(--red-soft);color:#9d3b33;border-color:#f0c7c3}.alert.warn{background:var(--orange-soft);color:#8a5220;border-color:#f0d3b4}
+.alert.ok{background:var(--green-soft);color:#2f6b4b;border-color:#c5dfd1}.alert.info{background:var(--blue-soft);color:#1d5f9e;border-color:#b7d8f7}
+.upload-box{border:1px dashed var(--border);border-radius:var(--radius);background:var(--soft);padding:12px;display:flex;flex-direction:column;gap:8px;transition:border-color .15s,background .15s}
+.upload-box.dragover{border-color:var(--blue);background:var(--blue-soft)}.upload-box.group-a{border-color:#c9dff5;background:#f7fbfe}.upload-box.group-b{border-color:#d3e7da;background:#f7fbf8}.upload-box.group-c{border-color:#ecd8c2;background:#fdf8f3}
+.file-card{border:1px solid var(--border);border-radius:var(--radius);background:#fff;padding:10px;display:flex;flex-direction:column;gap:8px}.file-card.block{border-color:#f0c7c3;background:#fff8f7}
+.file-top{display:flex;justify-content:space-between;gap:8px;align-items:flex-start}.file-name{font-size:13px;font-weight:650;word-break:break-all}
+.file-meta{font-size:12px;color:var(--muted);display:flex;flex-wrap:wrap;gap:6px 10px}.file-actions{display:flex;flex-wrap:wrap;gap:6px}
+.empty{border:1px dashed var(--border);border-radius:var(--radius);padding:16px;text-align:center;color:var(--muted);font-size:13px;background:var(--soft)}
+table{width:100%;border-collapse:collapse;font-size:12px}th,td{border-bottom:1px solid var(--border);padding:8px 6px;text-align:left;vertical-align:top}th{color:var(--muted);font-weight:650;background:var(--soft);position:sticky;top:0}
+.diff-tag{display:inline-block;padding:1px 6px;border-radius:999px;background:var(--orange-soft);color:#8a5220;font-size:11px;font-weight:650}
+.report-block{border-top:1px solid var(--border);padding-top:10px}.report-block:first-child{border-top:0;padding-top:0}.report-block h3{margin:0 0 6px;font-size:13px}.report-block p,.report-block li{font-size:13px;margin:0 0 6px}
+.qc-item{border:1px solid var(--border);border-radius:var(--radius);padding:8px 10px;background:var(--soft);font-size:13px}.qc-item.flag{background:var(--red-soft);border-color:#f0c7c3}
+.payload{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:11px;background:#1e1e1e;color:#e8e8e8;border-radius:var(--radius);padding:10px;max-height:220px;overflow:auto;white-space:pre-wrap;word-break:break-word}
+.drawer-mask{position:fixed;inset:0;background:rgba(0,0,0,.28);display:none;align-items:flex-end;justify-content:center;z-index:40}.drawer-mask.open{display:flex}
+.drawer{width:min(520px,100%);background:#fff;border-radius:12px 12px 0 0;padding:16px;max-height:85vh;overflow:auto;box-shadow:var(--shadow)}.drawer h3{margin:0 0 12px;font-size:16px}.drawer-actions{display:flex;justify-content:flex-end;gap:8px;margin-top:12px}
+.sr-only{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}
+details.adv{border:1px dashed var(--border);border-radius:8px;padding:8px 10px;background:#fafafa}details.adv summary{cursor:pointer;font-size:12px;color:var(--muted);font-weight:600}
+.mode-help{font-size:12px;color:#1d5f9e;background:var(--blue-soft);border:1px solid #b7d8f7;border-radius:8px;padding:8px 10px}
+
+.backend-bar{background:#EEF6FF;border-bottom:1px solid #cfe3f8;padding:8px 16px;display:flex;flex-wrap:wrap;gap:8px 12px;align-items:center;font-size:12px;color:var(--muted)}
+.backend-bar label{display:inline-flex;align-items:center;gap:6px;cursor:pointer}
+.backend-bar input[type=text]{min-width:min(520px,70vw);padding:6px 8px;border:1px solid var(--border);border-radius:6px;background:#fff;color:var(--text)}
+.backend-bar .ok{color:var(--green);font-weight:600}.backend-bar .warn{color:var(--orange);font-weight:600}.backend-bar .err{color:var(--red);font-weight:600}
+.backend-bar .mode-on{outline:2px solid var(--blue);background:var(--blue-soft)!important;color:var(--blue)!important;font-weight:700}
+.backend-bar .btn.primary.mode-on{background:var(--blue)!important;color:#fff!important;outline-color:#1565c0}
+</style>
+</head>
+<body>
+<div class="app">
+  <header class="topbar">
+    <div class="brand">
+      <h1>制度审查工作台 <span class="sub">v0.4.7 · 可接 n8n Webhook</span></h1>
+      <div class="meta-line">
+        <span id="caseIdLabel">—</span>
+        <span id="caseTitleLabel">—</span>
+        <span id="updatedLabel">未更新</span>
+      </div>
+    </div>
+    <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
+      <span id="statusBadge" class="badge draft">draft</span>
+      <span class="hint" id="stageHint">草稿：先填任务信息并上传文件</span>
+    </div>
+    <div class="actions" id="topActions">
+      <button class="btn primary" id="btnRun" type="button">开始审查</button>
+      <button class="btn" id="btnSave" type="button" title="把当前填写内容保存在本浏览器，刷新后可恢复；不是公司任务库">保存进度</button>
+      <button class="btn primary" id="btnExportWord" type="button" disabled>导出 Word 报告</button>
+      <button class="btn primary" id="btnExportExcel" type="button" disabled>导出 Excel 对照表</button>
+      <button class="btn" id="btnAllowExport" type="button" disabled title="审查完成后自动打开；也可手动确认">确认可导出</button>
+      <button class="btn" id="btnNewCase" type="button">清空重来</button>
+      <button class="btn" id="btnParse" type="button" disabled>仅解析</button>
+      <button class="btn" id="btnCompare" type="button" disabled>仅比对</button>
+      <button class="btn" id="btnQc" type="button" disabled>仅质检</button>
+      <button class="btn danger" id="btnHold" type="button">暂停</button>
+    </div>
+  </header>
+
+  
+    <div class="backend-bar" id="backendBar">
+    <strong style="color:var(--text)">后端</strong>
+    <button type="button" class="btn sm" id="btnModeLocal">模式：本地 Mock</button>
+    <button type="button" class="btn sm primary" id="btnModeN8n">模式：n8n 真Dify</button>
+    <input type="hidden" id="runModeValue" value="local" />
+    <input type="text" id="n8nWebhookUrl" placeholder="http://127.0.0.1:5678/webhook/policy-review-intake" style="min-width:min(420px,60vw)" />
+    <button class="btn sm" id="btnSaveBackend" type="button">记住地址</button>
+    <button class="btn sm primary" id="btnRunN8n" type="button">① 调用 n8n 审查</button>
+    <button class="btn sm" id="btnPingBackend" type="button">检测说明</button>
+    <span id="backendHint" class="warn">先点「模式：n8n 真Dify」变蓝，再点「① 调用 n8n 审查」</span>
+  </div>
+<div class="progress-strip">
+    <span>主链 <strong id="feProgressText">0/4</strong></span>
+    <div class="bar" aria-hidden="true"><i id="feProgressBar"></i></div>
+    <span id="blockingCount">阻断 0</span>
+    <span id="warningCount">警告 0</span>
+    <span>模式：脱机 v0.4.4（拖放 · 顶栏主操作 · Word/Excel 可打开 · 一次性任务）</span>
+  </div>
+
+  <main class="layout">
+    <section class="panel" aria-label="输入区">
+      <div class="panel-h"><h2>左侧输入区</h2><span class="hint">任务 · 上传 · 分组</span></div>
+      <div class="panel-b">
+        <div id="globalAlerts"></div>
+        <div class="alert info" id="saveHint">「保存进度」= 把本页填写内容记在<strong>本浏览器</strong>，刷新可恢复。关闭浏览器或换电脑不会同步；这是<strong>一次性任务页</strong>，不接账号权限，也不显示历史任务列表。</div>
+
+        <div class="section-title">A｜任务信息</div>
+        <div class="field">
+          <label for="caseTitle">审查任务名称（可脱敏）</label>
+          <input id="caseTitle" placeholder="上传被审制度后可自动生成；可改成脱敏名称" value="" />
+        </div>
+        <div class="row-2">
+          <div class="field">
+            <label for="reviewMode">审查模式 *</label>
+            <select id="reviewMode">
+              <option>制度审计</option>
+              <option>修订审查</option>
+              <option>比较研究</option>
+            </select>
+          </div>
+          <div class="field">
+            <label for="asOfDate">审查基准日 *</label>
+            <input id="asOfDate" type="date" />
+          </div>
+        </div>
+        <div class="mode-help" id="modeHelp">制度审计：对照上位/配套/旧版，找合规与控制差异。</div>
+        <div class="field">
+          <label for="reviewScope">审查范围 *</label>
+          <select id="reviewScope">
+            <option value="上位约束 + 配套协同 + 历史版本">上位约束 + 配套协同 + 历史版本</option>
+            <option value="仅上位约束">仅上位约束</option>
+            <option value="上位约束 + 历史版本">上位约束 + 历史版本</option>
+          </select>
+          <div class="hint">选择要对标的依据分组范围（不是乱码字段）。</div>
+        </div>
+        <div class="field">
+          <label>关注重点</label>
+          <div class="chips" id="focusChips">
+            <span class="chip on" data-v="审批权限">审批权限</span>
+            <span class="chip on" data-v="职责分工">职责分工</span>
+            <span class="chip" data-v="条件触发">条件触发</span>
+            <span class="chip" data-v="流程闭环">流程闭环</span>
+            <span class="chip" data-v="表单证据">表单证据</span>
+            <span class="chip" data-v="适用范围">适用范围</span>
+            <span class="chip" data-v="版本承接">版本承接</span>
+            <span class="chip" data-v="例外机制">例外机制</span>
+          </div>
+        </div>
+        <label class="hint" style="display:flex;gap:8px;align-items:center">
+          <input type="checkbox" id="allowPublic" /> 允许补充公开资料（默认关）
+        </label>
+
+        <div class="section-title">B｜被审制度（仅 1 份）</div>
+        <div class="upload-box" id="dropReviewed">
+          <div class="hint">支持 .doc / .docx / .pdf · 可拖放 · 再拖入将替换</div>
+          <input class="sr-only" type="file" id="reviewedFile" accept=".doc,.docx,.pdf,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document" />
+          <button class="btn sm" type="button" id="btnReviewedUpload">选择 / 替换被审制度</button>
+          <div id="reviewedSlot" class="empty">尚未上传被审制度</div>
+        </div>
+
+        <div class="section-title">C1｜上位约束源 <span class="hint" id="statA">0 份</span></div>
+        <div class="upload-box group-a" id="dropA">
+          <div class="hint">上级 / 上级单位 / 法律法规 / 上级专项通知 · 可拖放多文件</div>
+          <input class="sr-only" type="file" id="fileA" accept=".doc,.docx,.pdf" multiple />
+          <button class="btn sm" type="button" data-upload="上位约束源">上传到上位约束源</button>
+          <div id="listA"></div>
+        </div>
+
+        <div class="section-title">C2｜配套协同源 <span class="hint" id="statB">0 份</span></div>
+        <div class="upload-box group-b" id="dropB">
+          <div class="hint">同级 / 横向 / 配套流程、表单、权责 · 可拖放多文件</div>
+          <input class="sr-only" type="file" id="fileB" accept=".doc,.docx,.pdf" multiple />
+          <button class="btn sm" type="button" data-upload="配套协同源">上传到配套协同源</button>
+          <div id="listB"></div>
+        </div>
+
+        <div class="section-title">C3｜历史版本源 <span class="hint" id="statC">0 份</span></div>
+        <div class="upload-box group-c" id="dropC">
+          <div class="hint">旧版 / 上一版 / 修订稿 · 可拖放多文件</div>
+          <input class="sr-only" type="file" id="fileC" accept=".doc,.docx,.pdf" multiple />
+          <button class="btn sm" type="button" data-upload="历史版本源">上传到历史版本源</button>
+          <div id="listC"></div>
+        </div>
+
+        <details class="adv" id="payloadDetails">
+          <summary>开发调试：统一 Payload 预览（默认折叠，普通用户无需查看）</summary>
+          <pre class="payload" id="payloadView" style="margin-top:8px">{}</pre>
+        </details>
+      </div>
+    </section>
+
+    <section class="panel" aria-label="处理与对比区">
+      <div class="panel-h"><h2>中间处理与对比区</h2><span class="hint">解析 · 条文 · 主表</span></div>
+      <div class="panel-b">
+        <div class="section-title">E｜解析进度</div>
+        <div id="parseProgress" class="empty">尚未开始解析</div>
+        <div class="section-title">F｜条文级预览（Mock）</div>
+        <div id="clausePreview" class="empty">解析完成后显示被审条文 vs 依据条文</div>
+        <div class="section-title">G｜逐条对比表预览</div>
+        <div id="compareTableWrap" class="empty">比对完成后显示主表</div>
+      </div>
+    </section>
+
+    <section class="panel" aria-label="报告与QC区">
+      <div class="panel-h"><h2>右侧报告与 QC</h2><span class="hint">草稿 · 复核</span></div>
+      <div class="panel-b">
+        <div class="section-title">H｜Word 报告预览</div>
+        <div id="reportPreview" class="empty">QC 前显示报告草稿结构</div>
+        <div class="section-title">I｜QC 面板</div>
+        <div id="qcPanel" class="empty">尚未运行 QC</div>
+        <div class="section-title">J｜人工复核</div>
+        <div class="field">
+          <label for="manualComment">人工备注</label>
+          <textarea id="manualComment" placeholder="需你本人确认的事项…"></textarea>
+        </div>
+        <label class="hint" style="display:flex;gap:8px;align-items:center">
+          <input type="checkbox" id="allowExportChk" /> 确认本草稿可导出（审查完成后会自动勾选，仍建议扫一眼报告）
+        </label>
+        <div id="exportHint" class="alert info">导出前须完成审查；「确认可导出」在顶栏主区，不在高级折叠里。</div>
+      </div>
+    </section>
+  </main>
+</div>
+
+<div class="drawer-mask" id="drawerMask" role="dialog" aria-modal="true" aria-labelledby="drawerTitle">
+  <div class="drawer">
+    <h3 id="drawerTitle">编辑文件 metadata</h3>
+    <div class="field"><label>文件名 *</label><input id="m_name" /></div>
+    <div class="row-2">
+      <div class="field"><label>来源主类</label><input id="m_cat" disabled /></div>
+      <div class="field">
+        <label id="m_sub_label">来源子类 *</label>
+        <select id="m_sub"></select>
+      </div>
+    </div>
+    <div class="field"><label>制度正式名称</label><input id="m_title" /></div>
+    <div class="row-2">
+      <div class="field"><label>制度编号</label><input id="m_code" /></div>
+      <div class="field"><label>版本标签</label><input id="m_ver" placeholder="如 2026年版" /></div>
+    </div>
+    <div class="row-2">
+      <div class="field"><label>生效日期</label><input id="m_eff" type="date" /></div>
+      <div class="field">
+        <label>权重</label>
+        <select id="m_weight">
+          <option>核心依据</option>
+          <option>辅助依据</option>
+          <option>仅供参考</option>
+          <option>被审</option>
+        </select>
+      </div>
+    </div>
+    <label class="hint" style="display:flex;gap:8px;align-items:center;margin-top:8px" id="m_core_wrap">
+      <input type="checkbox" id="m_core" /> 标记为核心依据 is_core_basis
+    </label>
+    <div id="drawerError" class="alert error" style="display:none;margin-top:10px"></div>
+    <div class="drawer-actions">
+      <button class="btn" type="button" id="drawerCancel">取消</button>
+      <button class="btn primary" type="button" id="drawerSave">保存 metadata</button>
+    </div>
+  </div>
+</div>
+
+<script>
+(function () {
+  var SUBCATS = {
+    '上位约束源': ['上级', '上级单位', '法律法规', '上级专项通知', '上级管理办法'],
+    '配套协同源': ['同级', '横向', '配套流程', '表单', '合同', '审批制度', '权责制度'],
+    '历史版本源': ['旧版', '上一版', '修订稿'],
+    '被审制度': ['主文件', '送审稿', '征求意见稿', '报批稿']
+  };
+  var STAGE_HINT = {
+    draft: '草稿：先填任务信息并上传文件',
+    uploaded: '已上传：补齐 metadata 后可开始审查',
+    parsing: '解析中…',
+    parse_flagged: '解析异常：核心依据失败，禁止比对',
+    comparing: '比对中…',
+    qc_running: '质检中…',
+    ready_for_review: '可人工复核',
+    ready_for_export: '可导出 Word / Excel',
+    manual_hold: '已暂停'
+  };
+  var MODE_HELP = {
+    '制度审计': '制度审计：对照上位/配套/旧版，找合规与控制差异。',
+    '修订审查': '修订审查：聚焦拟修订稿相对现行与上位的变化是否充分、衔接是否闭环。',
+    '比较研究': '比较研究：多文本横向比较，输出差异矩阵；不作正式审计结论。'
+  };
+
+  var state = {
+    case_id: '',
+    status: 'draft',
+    allow_export: false,
+    reviewed: null,
+    refs: [],
+    parseLog: [],
+    compareRows: [],
+    report: null,
+    qc: null,
+    editingId: null,
+    editingReviewed: false,
+    prevStatusBeforeHold: null,
+    feChecks: { topbar: true, upload: false, metadata: false, mock: false }
+  };
+  var seq = 1;
+  function $(id) { return document.getElementById(id); }
+  function nowLabel() {
+    return new Date().toLocaleString('zh-CN', { hour12: false, timeZone: 'Asia/Hong_Kong' });
+  }
+  function genCaseId() {
+    var d = new Date();
+    function p(n) { return String(n).padStart(2, '0'); }
+    return 'CASE-' + d.getFullYear() + p(d.getMonth() + 1) + p(d.getDate()) + '-' + Math.floor(Math.random() * 900 + 100);
+  }
+  function extOk(name) { return /\.(pdf|docx?)$/i.test(name || ''); }
+  function escapeHtml(s) {
+    return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) {
+      return ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c];
+    });
+  }
+  function focusPoints() {
+    return Array.prototype.map.call(document.querySelectorAll('#focusChips .chip.on'), function (el) { return el.dataset.v; });
+  }
+  function ensureCaseIdentity() {
+    if (!state.case_id) state.case_id = genCaseId();
+    if ($('asOfDate') && !$('asOfDate').value) $('asOfDate').value = new Date().toISOString().slice(0, 10);
+    if (state.reviewed && state.reviewed.document_name && $('caseTitle') && !$('caseTitle').value.trim()) {
+      $('caseTitle').value = state.reviewed.document_name.replace(/\.(pdf|docx?)$/i, '') + '｜' + ($('reviewMode').value || '制度审查');
+    }
+    if ($('caseIdLabel')) $('caseIdLabel').textContent = state.case_id;
+  }
+  function updateModeHelp() {
+    if ($('modeHelp')) $('modeHelp').textContent = MODE_HELP[$('reviewMode').value] || '';
+  }
+
+  function validateAll() {
+    var blocking = [];
+    var warning = [];
+    if (!state.reviewed) blocking.push({ field: 'reviewed_document_file', message: '请先上传被审制度' });
+    else if (!state.reviewed.document_name) blocking.push({ field: 'document_name', message: '被审制度缺少文件名' });
+    state.refs.forEach(function (f) {
+      if (!f.source_subcategory) blocking.push({ field: 'source_subcategory', message: f.document_name + ' 缺少来源子类' });
+      if (!f.document_name) blocking.push({ field: 'document_name', message: '存在未命名文件' });
+      if (f.is_core_basis && !f.document_code) warning.push({ field: 'document_code', message: f.document_name + ' 核心依据建议补制度编号' });
+      if (f.source_category === '历史版本源' && !f.version_label) warning.push({ field: 'version_label', message: f.document_name + ' 历史版本建议填版本标签' });
+      if (f.parse_status === 'failed' && f.is_core_basis) blocking.push({ field: 'parse_status', message: '核心依据解析失败：' + f.document_name });
+      if (f.parse_status === 'partial' && !f.is_core_basis) warning.push({ field: 'overall_confidence', message: f.document_name + ' 低置信度，可继续但需关注' });
+    });
+    var needHist = (($('reviewScope').value || '')).indexOf('历史版本') >= 0;
+    var hasHist = state.refs.some(function (r) { return r.source_category === '历史版本源'; });
+    if (needHist && !hasHist) warning.push({ field: '历史版本源', message: '当前范围含历史版本，但尚未上传旧版/上一版' });
+    if (!state.refs.length && !$('allowPublic').checked) warning.push({ field: 'reference_documents', message: '尚无依据文件，且未开启公开补源' });
+    return { blocking: blocking, warning: warning };
+  }
+  function canStartParse() {
+    var v = validateAll();
+    var metaOk = state.refs.every(function (r) { return r.source_subcategory && r.document_name; });
+    return !!state.reviewed && metaOk && !v.blocking.some(function (b) {
+      return b.field === 'source_subcategory' || b.field === 'document_name' || b.field === 'reviewed_document_file';
+    });
+  }
+  function buildPayload() {
+    var groups = { '上位约束源': [], '配套协同源': [], '历史版本源': [] };
+    state.refs.forEach(function (r) { groups[r.source_category].push(Object.assign({}, r)); });
+    var v = validateAll();
+    return {
+      case_id: state.case_id,
+      case_title: $('caseTitle').value.trim(),
+      review_mode: $('reviewMode').value,
+      review_scope: $('reviewScope').value,
+      focus_points: focusPoints(),
+      as_of_date: $('asOfDate').value,
+      allow_public_source_search: $('allowPublic').checked,
+      reviewed_document_file: state.reviewed,
+      reference_documents: state.refs.map(function (r) { return Object.assign({}, r); }),
+      reference_document_groups: groups,
+      blocking_issues: v.blocking,
+      warning_issues: v.warning,
+      status: state.status,
+      allow_export: state.allow_export
+    };
+  }
+
+  function setStatus(s) {
+    state.status = s;
+    var badge = $('statusBadge');
+    badge.className = 'badge ' + s;
+    badge.textContent = s;
+    $('stageHint').textContent = STAGE_HINT[s] || s;
+    updateButtons();
+    refresh();
+  }
+  function updateButtons() {
+    var s = state.status;
+    var coreFailed = state.refs.some(function (r) { return r.is_core_basis && r.parse_status === 'failed'; });
+    var anyParsed = state.refs.some(function (r) { return r.parse_status === 'success' || r.parse_status === 'partial'; }) ||
+      (state.reviewed && state.reviewed.parse_status === 'success');
+    $('btnParse').disabled = !(canStartParse() && ['draft', 'uploaded', 'parse_flagged', 'ready_for_review', 'manual_hold'].indexOf(s) >= 0) || s === 'parsing';
+    $('btnCompare').disabled = coreFailed || s === 'parse_flagged' || s === 'parsing' || s === 'comparing' || s === 'qc_running' || s === 'draft' || !anyParsed || s === 'manual_hold';
+    $('btnQc').disabled = (!state.compareRows.length) || s === 'qc_running' || s === 'comparing' || s === 'parsing' || s === 'manual_hold';
+    if (state.compareRows.length && (s === 'ready_for_review' || s === 'ready_for_export')) $('btnQc').disabled = false;
+    $('btnAllowExport').disabled = (s !== 'ready_for_review' && s !== 'ready_for_export');
+    var exportOk = state.allow_export && s === 'ready_for_export';
+    $('btnExportWord').disabled = !exportOk;
+    $('btnExportExcel').disabled = !exportOk;
+    $('btnRun').disabled = !state.reviewed || s === 'parsing' || s === 'comparing' || s === 'qc_running';
+    if (s === 'manual_hold') {
+      $('btnParse').disabled = true;
+      $('btnCompare').disabled = true;
+      $('btnQc').disabled = true;
+      $('btnRun').disabled = true;
+    }
+  }
+  function feProgress() {
+    state.feChecks.upload = !!(state.reviewed || state.refs.length);
+    state.feChecks.metadata = !state.refs.length || state.refs.every(function (r) { return r.source_subcategory; });
+    state.feChecks.mock = ['parsing', 'parse_flagged', 'comparing', 'qc_running', 'ready_for_review', 'ready_for_export'].indexOf(state.status) >= 0 || state.compareRows.length > 0;
+    var keys = ['topbar', 'upload', 'metadata', 'mock'];
+    var done = keys.filter(function (k) { return state.feChecks[k]; }).length;
+    $('feProgressText').textContent = done + '/4';
+    $('feProgressBar').style.width = (done / 4 * 100) + '%';
+  }
+
+  function renderAlerts() {
+    var v = validateAll();
+    $('blockingCount').textContent = '阻断 ' + v.blocking.length;
+    $('warningCount').textContent = '警告 ' + v.warning.length;
+    var box = $('globalAlerts');
+    box.innerHTML = '';
+    v.blocking.slice(0, 4).forEach(function (b) {
+      var d = document.createElement('div');
+      d.className = 'alert error';
+      d.textContent = '阻断：' + b.message;
+      box.appendChild(d);
+    });
+    v.warning.slice(0, 3).forEach(function (w) {
+      var d = document.createElement('div');
+      d.className = 'alert warn';
+      d.textContent = '警告：' + w.message;
+      box.appendChild(d);
+    });
+  }
+  function fileCardHtml(f, isReviewed) {
+    var block = (!isReviewed && !f.source_subcategory) || (f.is_core_basis && f.parse_status === 'failed');
+    var id = f.file_id;
+    return '<div class="file-card ' + (block ? 'block' : '') + '" data-id="' + id + '">' +
+      '<div class="file-top"><div class="file-name">' + escapeHtml(f.document_name) + '</div>' +
+      '<span class="badge ' + (f.parse_status === 'success' ? 'success' : f.parse_status === 'failed' ? 'parse_flagged' : 'uploaded') + '">' + escapeHtml(f.parse_status || 'uploaded') + '</span></div>' +
+      '<div class="file-meta"><span>' + escapeHtml(f.source_category || '') + '</span><span>' + escapeHtml(f.source_subcategory || (isReviewed ? '主文件' : '子类未填')) + '</span>' +
+      '<span>' + (f.is_core_basis ? '核心依据' : (f.reference_weight || '辅助')) + '</span>' +
+      '<span>置信度 ' + (f.overall_confidence == null ? '—' : f.overall_confidence) + '</span></div>' +
+      '<div class="file-actions">' +
+      '<button class="btn sm" type="button" data-act="edit" data-id="' + id + '">编辑 metadata</button>' +
+      (isReviewed ? '' : '<button class="btn sm" type="button" data-act="reparse" data-id="' + id + '">重解析</button>') +
+      (isReviewed ? '<button class="btn sm danger" type="button" data-act="del-reviewed" data-id="' + id + '">删除</button>' :
+        '<button class="btn sm danger" type="button" data-act="del" data-id="' + id + '">删除</button>') +
+      '</div></div>';
+  }
+  function renderLists() {
+    var map = {
+      '上位约束源': { list: 'listA', stat: 'statA' },
+      '配套协同源': { list: 'listB', stat: 'statB' },
+      '历史版本源': { list: 'listC', stat: 'statC' }
+    };
+    Object.keys(map).forEach(function (cat) {
+      var items = state.refs.filter(function (r) { return r.source_category === cat; });
+      $(map[cat].stat).textContent = items.length + ' 份';
+      $(map[cat].list).innerHTML = items.length ? items.map(function (f) { return fileCardHtml(f, false); }).join('') : '<div class="empty">本组暂无文件</div>';
+    });
+    if (state.reviewed) {
+      var rv = Object.assign({}, state.reviewed, {
+        source_category: state.reviewed.source_category || '被审制度',
+        source_subcategory: state.reviewed.source_subcategory || '主文件',
+        is_core_basis: true,
+        reference_weight: state.reviewed.reference_weight || '被审',
+        file_id: 'REVIEWED'
+      });
+      $('reviewedSlot').innerHTML = fileCardHtml(rv, true);
+    } else {
+      $('reviewedSlot').innerHTML = '<div class="empty">尚未上传被审制度</div>';
+    }
+  }
+  function renderMiddle() {
+    if (!state.parseLog.length) $('parseProgress').innerHTML = '<div class="empty">尚未开始解析</div>';
+    else $('parseProgress').innerHTML = state.parseLog.map(function (l) {
+      return '<div class="alert ' + l.type + '">' + escapeHtml(l.text) + '</div>';
+    }).join('');
+    if (state.reviewed && (state.reviewed.parse_status === 'success' || state.status !== 'draft')) {
+      $('clausePreview').innerHTML = '<div class="file-card"><div class="file-meta"><span>被审 §3</span><span class="diff-tag">表述不一致</span><span>upper-unit-measure §5</span></div>' +
+        '<div style="display:grid;grid-template-columns:1fr auto 1fr;gap:8px;font-size:13px"><div>审批权限由业务部门负责人决定……</div><div style="color:var(--muted)">↔</div><div>须经风控与合规会签后方可提交……</div></div></div>';
+    } else $('clausePreview').innerHTML = '<div class="empty">解析完成后显示被审条文 vs 依据条文</div>';
+    if (!state.compareRows.length) $('compareTableWrap').innerHTML = '<div class="empty">比对完成后显示主表</div>';
+    else {
+      var rows = state.compareRows.map(function (r) {
+        return '<tr><td>' + escapeHtml(r.clause) + '</td><td>' + escapeHtml(r.cat) + '</td><td>' + escapeHtml(r.basis) + '</td><td><span class="diff-tag">' +
+          escapeHtml(r.diff) + '</span></td><td>' + escapeHtml(r.risk) + '</td><td>' + escapeHtml(r.qc) + '</td></tr>';
+      }).join('');
+      $('compareTableWrap').innerHTML = '<div style="overflow:auto;max-height:320px"><table><thead><tr><th>被审条款</th><th>来源类别</th><th>依据</th><th>差异</th><th>风险</th><th>QC</th></tr></thead><tbody>' + rows + '</tbody></table></div>';
+    }
+  }
+  function renderRight() {
+    if (!state.report) $('reportPreview').innerHTML = '<div class="empty">QC 前显示报告草稿结构</div>';
+    else {
+      var r = state.report;
+      $('reportPreview').innerHTML = '<div class="report-block"><h3>一、审查工作概况</h3><p>' + escapeHtml(r.overview) + '</p></div>' +
+        '<div class="report-block"><h3>三、评价意见</h3><p>' + escapeHtml(r.opinion) + '</p></div>' +
+        '<div class="report-block"><h3>四、主要发现</h3><ul>' + r.findings.map(function (f) { return '<li>' + escapeHtml(f) + '</li>'; }).join('') + '</ul></div>' +
+        '<div class="report-block"><h3>七、修改建议</h3><ul>' + r.suggestions.map(function (f) { return '<li>' + escapeHtml(f) + '</li>'; }).join('') + '</ul></div>' +
+        '<div class="hint">本报告为 AI 辅助审查草稿，需人工复核确认</div>';
+    }
+    if (!state.qc) $('qcPanel').innerHTML = '<div class="empty">尚未运行 QC</div>';
+    else {
+      $('qcPanel').innerHTML = '<div class="alert ' + (state.qc.qc_overall === 'pass' ? 'ok' : 'warn') + '">qc_overall = ' + state.qc.qc_overall + '</div>' +
+        state.qc.qc_issues.map(function (i) {
+          return '<div class="qc-item ' + (state.qc.qc_overall === 'flag' ? 'flag' : '') + '"><strong>' + escapeHtml(i.issue_no) + '</strong> · ' +
+            escapeHtml(i.issue_type) + '<br/>' + escapeHtml(i.issue_detail) + '</div>';
+        }).join('');
+    }
+    $('allowExportChk').checked = state.allow_export;
+    $('exportHint').textContent = state.allow_export && state.status === 'ready_for_export'
+      ? '已确认可导出：请用顶栏「导出 Word 报告 / 导出 Excel 对照表」。'
+      : '完成「开始审查」后会自动确认可导出；也可点顶栏「确认可导出」。';
+    $('exportHint').className = 'alert ' + (state.allow_export && state.status === 'ready_for_export' ? 'ok' : 'info');
+  }
+  function refresh() {
+    ensureCaseIdentity();
+    updateModeHelp();
+    $('caseTitleLabel').textContent = $('caseTitle').value.trim() || '—';
+    $('caseIdLabel').textContent = state.case_id;
+    $('updatedLabel').textContent = '更新 ' + nowLabel();
+    $('payloadView').textContent = JSON.stringify(buildPayload(), null, 2);
+    renderAlerts();
+    renderLists();
+    renderMiddle();
+    renderRight();
+    updateButtons();
+    feProgress();
+  }
+
+  function addRef(file, category) {
+    if (!extOk(file.name)) { alert('仅支持 .doc / .docx / .pdf'); return; }
+    var id = 'REF-' + String(seq++).padStart(3, '0');
+    var rec = {
+      file_id: id, document_name: file.name, document_title: '', source_category: category, source_subcategory: '',
+      document_code: '', version_label: '', effective_date: '', is_core_basis: category === '上位约束源',
+      reference_weight: category === '上位约束源' ? '核心依据' : '辅助依据', parse_status: 'uploaded', overall_confidence: null
+    };
+    state.refs.push(rec);
+    if (state.status === 'draft') setStatus('uploaded');
+    openDrawer(id, false);
+    refresh();
+  }
+  function setReviewed(file) {
+    if (!extOk(file.name)) { alert('仅支持 .doc / .docx / .pdf'); return; }
+    state.reviewed = {
+      file_id: 'REV-001', document_name: file.name, document_title: '', source_category: '被审制度', source_subcategory: '主文件',
+      document_code: '', version_label: '', effective_date: '', type: (file.name.split('.').pop() || '').toLowerCase(),
+      parse_status: 'uploaded', overall_confidence: null, clause_count: null, is_core_basis: true, reference_weight: '被审'
+    };
+    if (state.status === 'draft') setStatus('uploaded');
+    openDrawer('REVIEWED', true);
+    refresh();
+  }
+  function openDrawer(id, isReviewed) {
+    state.editingReviewed = !!isReviewed || id === 'REVIEWED';
+    state.editingId = id;
+    var f;
+    if (state.editingReviewed) {
+      f = state.reviewed;
+      if (!f) return;
+      $('drawerTitle').textContent = '编辑被审制度 metadata';
+      $('m_cat').value = f.source_category || '被审制度';
+      $('m_sub_label').textContent = '文件类型 *';
+      $('m_core_wrap').style.display = 'none';
+    } else {
+      f = state.refs.find(function (r) { return r.file_id === id; });
+      if (!f) return;
+      $('drawerTitle').textContent = '编辑依据文件 metadata';
+      $('m_cat').value = f.source_category;
+      $('m_sub_label').textContent = '来源子类 *';
+      $('m_core_wrap').style.display = 'flex';
+    }
+    $('m_name').value = f.document_name || '';
+    var cat = state.editingReviewed ? '被审制度' : f.source_category;
+    var opts = SUBCATS[cat] || ['其他'];
+    $('m_sub').innerHTML = opts.map(function (s) { return '<option value="' + s + '">' + s + '</option>'; }).join('');
+    $('m_sub').value = f.source_subcategory || opts[0];
+    if (!f.source_subcategory) $('m_sub').selectedIndex = 0;
+    $('m_title').value = f.document_title || '';
+    $('m_code').value = f.document_code || '';
+    $('m_ver').value = f.version_label || '';
+    $('m_eff').value = f.effective_date || '';
+    $('m_weight').value = f.reference_weight || (state.editingReviewed ? '被审' : '辅助依据');
+    $('m_core').checked = !!f.is_core_basis;
+    $('drawerError').style.display = 'none';
+    $('drawerMask').classList.add('open');
+  }
+  function closeDrawer() {
+    $('drawerMask').classList.remove('open');
+    state.editingId = null;
+    state.editingReviewed = false;
+  }
+
+  function bindDrop(el, onFiles) {
+    if (!el) return;
+    ['dragenter', 'dragover'].forEach(function (ev) {
+      el.addEventListener(ev, function (e) { e.preventDefault(); e.stopPropagation(); el.classList.add('dragover'); });
+    });
+    ['dragleave', 'drop'].forEach(function (ev) {
+      el.addEventListener(ev, function (e) { e.preventDefault(); e.stopPropagation(); el.classList.remove('dragover'); });
+    });
+    el.addEventListener('drop', function (e) {
+      var files = e.dataTransfer && e.dataTransfer.files ? Array.prototype.slice.call(e.dataTransfer.files) : [];
+      onFiles(files);
+    });
+  }
+
+  $('focusChips').addEventListener('click', function (e) {
+    var t = e.target.closest('.chip'); if (!t) return; t.classList.toggle('on'); refresh();
+  });
+  $('btnReviewedUpload').onclick = function () { $('reviewedFile').click(); };
+  $('reviewedFile').onchange = function () {
+    var f = $('reviewedFile').files[0]; if (!f) return; setReviewed(f); $('reviewedFile').value = '';
+  };
+  bindDrop($('dropReviewed'), function (files) {
+    var ok = files.filter(function (f) { return extOk(f.name); });
+    if (!ok.length) { alert('仅支持 .doc / .docx / .pdf'); return; }
+    setReviewed(ok[0]);
+  });
+  document.querySelectorAll('[data-upload]').forEach(function (btn) {
+    btn.addEventListener('click', function () {
+      var cat = btn.getAttribute('data-upload');
+      var input = cat === '上位约束源' ? $('fileA') : cat === '配套协同源' ? $('fileB') : $('fileC');
+      input.onchange = function () {
+        Array.prototype.forEach.call(input.files, function (file) { addRef(file, cat); });
+        input.value = '';
+      };
+      input.click();
+    });
+  });
+  bindDrop($('dropA'), function (files) { files.forEach(function (f) { if (extOk(f.name)) addRef(f, '上位约束源'); }); });
+  bindDrop($('dropB'), function (files) { files.forEach(function (f) { if (extOk(f.name)) addRef(f, '配套协同源'); }); });
+  bindDrop($('dropC'), function (files) { files.forEach(function (f) { if (extOk(f.name)) addRef(f, '历史版本源'); }); });
+
+  document.body.addEventListener('click', function (e) {
+    var btn = e.target.closest('[data-act]'); if (!btn) return;
+    var id = btn.getAttribute('data-id');
+    var act = btn.getAttribute('data-act');
+    if (act === 'edit') { openDrawer(id, id === 'REVIEWED'); return; }
+    if (act === 'del-reviewed') { state.reviewed = null; refresh(); return; }
+    if (act === 'del') { state.refs = state.refs.filter(function (r) { return r.file_id !== id; }); refresh(); return; }
+    if (act === 'reparse') {
+      var f = state.refs.find(function (r) { return r.file_id === id; }); if (!f) return;
+      f.parse_status = 'parsing'; f.overall_confidence = null; setStatus('parsing');
+      state.parseLog.push({ type: 'info', text: '重解析 ' + f.document_name + '…' }); refresh();
+      setTimeout(function () {
+        f.parse_status = f.is_core_basis ? 'success' : 'partial';
+        f.overall_confidence = f.is_core_basis ? 0.92 : 0.71;
+        state.parseLog.push({ type: f.parse_status === 'success' ? 'ok' : 'warn', text: f.document_name + ' → ' + f.parse_status });
+        setStatus('uploaded'); refresh();
+      }, 700);
+    }
+  });
+
+  $('drawerCancel').onclick = closeDrawer;
+  $('drawerMask').addEventListener('click', function (e) { if (e.target === $('drawerMask')) closeDrawer(); });
+  $('drawerSave').onclick = function () {
+    var name = $('m_name').value.trim();
+    var sub = $('m_sub').value;
+    if (!name || !sub) {
+      $('drawerError').style.display = 'block';
+      $('drawerError').textContent = '阻断：文件名与子类为必填';
+      return;
+    }
+    if (state.editingReviewed) {
+      if (!state.reviewed) return;
+      state.reviewed.document_name = name;
+      state.reviewed.source_category = '被审制度';
+      state.reviewed.source_subcategory = sub;
+      state.reviewed.document_title = $('m_title').value.trim();
+      state.reviewed.document_code = $('m_code').value.trim();
+      state.reviewed.version_label = $('m_ver').value.trim();
+      state.reviewed.effective_date = $('m_eff').value;
+      state.reviewed.reference_weight = $('m_weight').value || '被审';
+      state.reviewed.is_core_basis = true;
+    } else {
+      var f = state.refs.find(function (r) { return r.file_id === state.editingId; }); if (!f) return;
+      f.document_name = name;
+      f.source_subcategory = sub;
+      f.document_title = $('m_title').value.trim();
+      f.document_code = $('m_code').value.trim();
+      f.version_label = $('m_ver').value.trim();
+      f.effective_date = $('m_eff').value;
+      f.reference_weight = $('m_weight').value;
+      f.is_core_basis = $('m_core').checked;
+    }
+    closeDrawer();
+    if (state.status === 'draft') setStatus('uploaded');
+    refresh();
+  };
+
+  function storageKey() { return 'irw_oneshot_' + (state.case_id || 'draft'); }
+  $('btnSave').onclick = function () {
+    ensureCaseIdentity();
+    if (state.status === 'draft' && state.reviewed) setStatus('uploaded');
+    try {
+      localStorage.setItem(storageKey(), JSON.stringify({
+        case_id: state.case_id,
+        title: $('caseTitle').value,
+        status: state.status,
+        reviewed: state.reviewed,
+        refs: state.refs,
+        allow_export: state.allow_export,
+        as_of_date: $('asOfDate').value,
+        review_mode: $('reviewMode').value,
+        review_scope: $('reviewScope').value,
+        saved_at: new Date().toISOString()
+      }));
+      alert('进度已保存在本浏览器（一次性任务，不入公司任务库）。\n键：' + storageKey());
+    } catch (e) { alert('本浏览器无法写入本地存储：' + (e.message || e)); }
+    refresh();
+  };
+
+  function doParse(done) {
+    if (!canStartParse()) { alert('请先上传被审制度并为所有依据文件补齐 metadata'); if (done) done(false); return; }
+    setStatus('parsing');
+    state.parseLog = [{ type: 'info', text: '开始整案解析（Mock）…' }];
+    if (state.reviewed) state.reviewed.parse_status = 'parsing';
+    state.refs.forEach(function (r) { r.parse_status = 'parsing'; r.overall_confidence = null; });
+    refresh();
+    setTimeout(function () {
+      var flagged = false;
+      if (state.reviewed) {
+        state.reviewed.parse_status = 'success';
+        state.reviewed.overall_confidence = 0.94;
+        state.reviewed.clause_count = 42;
+        state.parseLog.push({ type: 'ok', text: '被审制度解析成功 · 条文 ' + state.reviewed.clause_count });
+      }
+      state.refs.forEach(function (r, idx) {
+        var forceFail = /fail|失败|坏/.test(r.document_name) && r.is_core_basis;
+        if (forceFail) {
+          r.parse_status = 'failed'; r.overall_confidence = 0.21; flagged = true;
+          state.parseLog.push({ type: 'error', text: '核心依据失败：' + r.document_name });
+        } else if (!r.is_core_basis && idx % 3 === 2) {
+          r.parse_status = 'partial'; r.overall_confidence = 0.68;
+          state.parseLog.push({ type: 'warn', text: r.document_name + ' partial（非核心，warning）' });
+        } else {
+          r.parse_status = 'success';
+          r.overall_confidence = Math.round((0.9 + Math.random() * 0.08) * 100) / 100;
+          state.parseLog.push({ type: 'ok', text: r.document_name + ' success' });
+        }
+      });
+      setStatus(flagged ? 'parse_flagged' : 'uploaded');
+      if (!flagged) state.parseLog.push({ type: 'ok', text: '解析完成，可开始比对' });
+      refresh();
+      if (done) done(!flagged);
+    }, 700);
+  }
+  function doCompare(done) {
+    if (state.status === 'parse_flagged') { if (done) done(false); return; }
+    setStatus('comparing');
+    state.parseLog.push({ type: 'info', text: '比对中（Mock）…' });
+    refresh();
+    setTimeout(function () {
+      state.compareRows = [
+        { clause: '§3 审批权限', cat: '上位约束源', basis: 'upper-unit-measure §5', diff: '表述不一致', risk: '控制点未充分转化', qc: 'pending' },
+        { clause: '§8 职责分工', cat: '配套协同源', basis: '权责清单 §2', diff: '流程缺口', risk: '职责边界不清', qc: 'pending' },
+        { clause: '§12 适用范围', cat: '历史版本源', basis: '旧版 §10', diff: '与旧版变化', risk: '覆盖面扩大待确认', qc: 'pending' }
+      ];
+      state.report = {
+        overview: '对《' + ($('caseTitle').value || '被审制度') + '》开展' + ($('reviewMode').value || '制度审计') + '（脱机草稿）。审查基准日：' + ($('asOfDate').value || '—') + '。',
+        opinion: '总体框架基本完整，但在审批权限与职责衔接方面存在未充分承接之处，需进一步确认。',
+        findings: ['F-01 审批权限表述与上级要求存在差异', 'F-02 配套权责衔接不完整', 'F-03 相对旧版适用范围有所扩大'],
+        suggestions: ['建议对齐上级审批会签要求', '建议补充职责交叉矩阵', '建议单列与上版本差异说明']
+      };
+      setStatus('qc_running'); refresh();
+      setTimeout(function () {
+        state.qc = {
+          qc_overall: 'flag',
+          qc_issues: [
+            { issue_no: 'QC-01', issue_type: '报告与表格一致性', issue_detail: '主表 3 条发现与报告 F-01~F-03 已对齐（Mock）' },
+            { issue_no: 'QC-02', issue_type: '结论审慎', issue_detail: '已使用“未充分承接”等审慎表述' }
+          ]
+        };
+        state.compareRows = state.compareRows.map(function (r) { return Object.assign({}, r, { qc: 'pass' }); });
+        setStatus('ready_for_review');
+        state.parseLog.push({ type: 'ok', text: 'QC 完成 → ready_for_review' });
+        refresh();
+        if (done) done(true);
+      }, 500);
+    }, 600);
+  }
+
+  $('btnParse').onclick = function () { doParse(null); };
+  $('btnCompare').onclick = function () { doCompare(null); };
+  $('btnQc').onclick = function () {
+    if (!state.compareRows.length) return;
+    setStatus('qc_running');
+    setTimeout(function () {
+      state.qc = state.qc || { qc_overall: 'pass', qc_issues: [] };
+      setStatus('ready_for_review'); refresh();
+    }, 300);
+  };
+  $('btnAllowExport').onclick = function () {
+    state.allow_export = true;
+    $('allowExportChk').checked = true;
+    setStatus('ready_for_export');
+  };
+  $('allowExportChk').onchange = function () {
+    state.allow_export = $('allowExportChk').checked;
+    if (state.allow_export && state.status === 'ready_for_review') setStatus('ready_for_export');
+    if (!state.allow_export && state.status === 'ready_for_export') setStatus('ready_for_review');
+    refresh();
+  };
+  $('btnHold').onclick = function () {
+    if (state.status === 'manual_hold') {
+      setStatus(state.prevStatusBeforeHold || 'uploaded');
+      state.prevStatusBeforeHold = null;
+      $('btnHold').textContent = '暂停';
+    } else {
+      state.prevStatusBeforeHold = state.status;
+      setStatus('manual_hold');
+      $('btnHold').textContent = '继续';
+    }
+  };
+  $('btnNewCase').onclick = function () {
+    if (!confirm('清空当前一次性任务进度？')) return;
+    state.case_id = genCaseId();
+    state.reviewed = null; state.refs = []; state.allow_export = false;
+    state.parseLog = []; state.compareRows = []; state.report = null; state.qc = null;
+    $('caseTitle').value = '';
+    $('asOfDate').value = new Date().toISOString().slice(0, 10);
+    $('allowExportChk').checked = false;
+    $('btnHold').textContent = '暂停';
+    setStatus('draft'); refresh();
+  };
+
+  async function getRunMode() {
+    var h = document.getElementById('runModeValue');
+    var mode = (h && h.value === 'n8n') ? 'n8n' : 'local';
+    return mode;
+  }
+  function setRunMode(mode) {
+    mode = (mode === 'n8n') ? 'n8n' : 'local';
+    var h = document.getElementById('runModeValue');
+    if (h) h.value = mode;
+    try { localStorage.setItem('irw_run_mode', mode); } catch (e) {}
+    var bL = document.getElementById('btnModeLocal');
+    var bN = document.getElementById('btnModeN8n');
+    if (bL) {
+      if (mode === 'local') bL.classList.add('mode-on'); else bL.classList.remove('mode-on');
+    }
+    if (bN) {
+      if (mode === 'n8n') bN.classList.add('mode-on'); else bN.classList.remove('mode-on');
+    }
+    var btn = document.getElementById('btnRun');
+    if (btn) btn.textContent = mode === 'n8n' ? '开始审查（n8n）' : '开始审查（本地Mock）';
+    var hint = mode === 'n8n'
+      ? ('n8n 模式已选中 → 请点「① 调用 n8n 审查」 · URL=' + (getWebhookUrl() || '（未填）'))
+      : '本地 Mock 模式（不调用后端）';
+    setBackendHint(hint, mode === 'n8n' ? 'warn' : '');
+    return mode;
+  }
+  function syncModeUi() {
+    setRunMode(getRunMode());
+  }
+  function getWebhookUrl() {
+    var el = $('n8nWebhookUrl');
+    return el ? String(el.value || '').trim() : '';
+  }
+  function setBackendHint(text, cls) {
+    var el = $('backendHint');
+    if (!el) return;
+    el.className = cls || '';
+    el.textContent = text;
+  }
+  function buildN8nCaseBody() {
+    // n8n Normalize+Validate 期望的字段（与联调 JSON 对齐）
+    var reviewed = state.reviewed || {};
+    return {
+      case_id: state.case_id,
+      case_title: ($('caseTitle').value || '').trim() || ((reviewed.document_name || '被审制度').replace(/\.(pdf|docx?)$/i, '')),
+      review_mode: $('reviewMode').value || '制度审计',
+      review_scope: $('reviewScope').value || '',
+      focus_points: focusPoints(),
+      as_of_date: $('asOfDate').value || new Date().toISOString().slice(0, 10),
+      allow_public_source_search: !!( $('allowPublic') && $('allowPublic').checked ),
+      reviewed_document: {
+        file_name: reviewed.document_name || reviewed.file_name || '被审制度-送审稿.docx',
+        document_title: reviewed.document_title || (reviewed.document_name || '').replace(/\.(pdf|docx?)$/i, '') || '被审制度',
+        version_label: reviewed.version_label || '送审稿',
+        document_code: reviewed.document_code || ''
+      },
+      reference_documents: (state.refs || []).map(function (r) {
+        return {
+          file_name: r.document_name || r.file_name || '依据.docx',
+          document_title: r.document_title || '',
+          source_category: r.source_category,
+          source_subcategory: r.source_subcategory || '',
+          is_core_basis: !!r.is_core_basis,
+          reference_weight: r.reference_weight || (r.is_core_basis ? '核心依据' : '辅助依据'),
+          version_label: r.version_label || '',
+          document_code: r.document_code || ''
+        };
+      })
+    };
+  }
+  function mapN8nResult(data) {
+    // 兼容 Respond OK / 直接 Dify normalize 输出
+    var root = data || {};
+    if (root.data && root.data.outputs) root = Object.assign({}, root, root.data.outputs);
+    var main = root.excel_main_table || [];
+    if ((!main || !main.length) && root.artifacts && root.artifacts.excel_main_csv) {
+      // csv only - leave empty table, still show status
+      main = main || [];
+    }
+    if (typeof main === 'string') {
+      try { main = JSON.parse(main); } catch (e) { main = []; }
+    }
+    var ver = root.excel_version_table || [];
+    if (typeof ver === 'string') { try { ver = JSON.parse(ver); } catch (e) { ver = []; } }
+    var qc = root.qc_result || root.qc || null;
+    if (typeof qc === 'string') { try { qc = JSON.parse(qc); } catch (e) { qc = null; } }
+    if (!qc && root.qc_json) {
+      try { qc = typeof root.qc_json === 'string' ? JSON.parse(root.qc_json) : root.qc_json; } catch (e) {}
+    }
+    var report = root.word_report || root.report || null;
+    if (typeof report === 'string') { try { report = JSON.parse(report); } catch (e) { report = null; } }
+    if (!report && root.word_report_json) {
+      try { report = typeof root.word_report_json === 'string' ? JSON.parse(root.word_report_json) : root.word_report_json; } catch (e) {}
+    }
+
+    state.compareRows = (main || []).map(function (r) {
+      return {
+        clause: (r.reviewed_clause_no || '') + (r.reviewed_locator ? ' · ' + r.reviewed_locator : ''),
+        cat: r.source_category || '',
+        basis: ((r.reference_document_name || '') + ' ' + (r.reference_clause_no || '')).trim(),
+        diff: r.difference_type || r.difference_summary || '',
+        risk: r.risk_impact || '',
+        qc: r.qc_status || 'pass',
+        summary: r.difference_summary || '',
+        suggestion: r.suggested_revision || ''
+      };
+    });
+
+    if (report) {
+      var findings = [];
+      if (Array.isArray(report.major_findings)) {
+        findings = report.major_findings.map(function (f) {
+          return (f.finding_no || '') + ' ' + (f.title || f.finding_title || '');
+        });
+      } else if (Array.isArray(report.findings)) {
+        findings = report.findings;
+      }
+      state.report = {
+        overview: report.overview || report.report_summary || '',
+        opinion: report.overall_assessment || report.opinion || '',
+        findings: findings,
+        suggestions: report.revision_suggestions || report.suggestions || []
+      };
+    } else if (state.compareRows.length) {
+      state.report = {
+        overview: '已通过 n8n 调用后端完成比对（case ' + state.case_id + '）。',
+        opinion: (qc && qc.qc_overall === 'pass') ? 'QC 通过，可进入人工复核/导出。' : '请结合主表进行人工复核。',
+        findings: state.compareRows.slice(0, 5).map(function (r, i) {
+          return 'F-0' + (i + 1) + ' ' + (r.diff || r.summary || '差异');
+        }),
+        suggestions: state.compareRows.slice(0, 5).map(function (r) { return r.suggestion || '见主表修改建议'; })
+      };
+    }
+
+    state.qc = qc || { qc_overall: root.qc_overall || 'flag', qc_issues: [] };
+    state.n8nRaw = root;
+    state.versionRows = ver || [];
+
+    var allow = root.allow_export;
+    if (allow == null && qc) allow = !!qc.allow_export_recommendation;
+    if (allow == null) allow = state.compareRows.length > 0;
+    state.allow_export = !!allow;
+    if ($('allowExportChk')) $('allowExportChk').checked = state.allow_export;
+
+    var st = root.status || (state.allow_export ? 'ready_for_export' : 'ready_for_review');
+    if (root.ok === false) {
+      setStatus('manual_hold');
+      state.parseLog.push({ type: 'error', text: (root.message || root.error_code || 'n8n 返回失败') + '' });
+      return false;
+    }
+    if (st === 'ready_for_export' || st === 'ready_for_review') setStatus(st);
+    else if (state.allow_export) setStatus('ready_for_export');
+    else setStatus('ready_for_review');
+    return true;
+  }
+  function runN8nReview() {
+    var url = getWebhookUrl();
+    if (!url) {
+      alert('请填写 n8n Webhook URL（工作流 Active 后，打开 Webhook 节点复制 Production URL）');
+      setBackendHint('缺少 Webhook URL', 'err');
+      return;
+    }
+    if (!/^https?:\/\//i.test(url)) {
+      alert('Webhook URL 必须以 http:// 或 https:// 开头');
+      return;
+    }
+    ensureCaseIdentity();
+    var v = validateAll();
+    if (v.blocking.length) {
+      alert('请先处理：\n' + v.blocking.slice(0, 6).map(function (b) { return b.message; }).join('\n'));
+      return;
+    }
+    var body = buildN8nCaseBody();
+    if (!body.reference_documents.length) {
+      if (!confirm('尚未添加依据文件。仍要提交 n8n 吗？（后端可能因缺依据失败）')) return;
+    }
+    setStatus('comparing');
+    state.parseLog = [{ type: 'info', text: '已提交 n8n Webhook…' }, { type: 'info', text: url }];
+    setBackendHint('请求中…（Dify 可能需要 30s~2min）', 'warn');
+    refresh();
+    $('btnRun').disabled = true;
+
+    var ctrl = (typeof AbortController !== 'undefined') ? new AbortController() : null;
+    var timer = setTimeout(function () { if (ctrl) ctrl.abort(); }, 180000);
+
+    fetch(url, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
+      body: JSON.stringify(body),
+      signal: ctrl ? ctrl.signal : undefined
+    }).then(function (res) {
+      return res.text().then(function (text) {
+        var data = null;
+        try { data = text ? JSON.parse(text) : null; } catch (e) { data = { ok: false, message: text || ('HTTP ' + res.status) }; }
+        return { res: res, data: data, text: text };
+      });
+    }).then(function (pack) {
+      clearTimeout(timer);
+      var data = pack.data || {};
+      if (!pack.res.ok) {
+        state.parseLog.push({ type: 'error', text: 'HTTP ' + pack.res.status + ' · ' + (data.message || data.error_code || pack.text || '').toString().slice(0, 300) });
+        setStatus('manual_hold');
+        setBackendHint('n8n 返回 HTTP ' + pack.res.status, 'err');
+        refresh();
+        return;
+      }
+      state.parseLog.push({ type: 'ok', text: 'n8n 响应成功，正在映射结果…' });
+      var ok = mapN8nResult(data);
+      if (ok) {
+        state.parseLog.push({ type: 'ok', text: '后端审查完成 · 主表 ' + state.compareRows.length + ' 行 · mode=' + (data.mode || 'n8n') });
+        setBackendHint('n8n 接通成功 · 主表 ' + state.compareRows.length + ' 行', 'ok');
+        state.feChecks.mock = true;
+      } else {
+        setBackendHint('n8n 返回业务失败', 'err');
+      }
+      refresh();
+    }).catch(function (err) {
+      clearTimeout(timer);
+      var msg = (err && err.name === 'AbortError') ? '请求超时（180s）' : ((err && err.message) || String(err));
+      state.parseLog.push({ type: 'error', text: '请求失败：' + msg });
+      state.parseLog.push({ type: 'warn', text: '若用 file:// 打开页面，请改用 http://127.0.0.1 静态服务；并确认 n8n 工作流 Active、Webhook 路径正确、Dify 可达。' });
+      setStatus('manual_hold');
+      setBackendHint('请求失败：' + msg, 'err');
+      refresh();
+    }).finally(function () {
+      updateButtons();
+    });
+  }
+  function runFullReview(forceMode) {
+    ensureCaseIdentity(); refresh();
+    if (!state.reviewed) { alert('请先上传被审制度'); return; }
+    var v = validateAll();
+    if (v.blocking.length) {
+      alert('请先处理：' + v.blocking.slice(0, 6).map(function (b) { return b.message; }).join('；'));
+      return;
+    }
+    var mode = forceMode || getRunMode();
+    if (mode === 'n8n') {
+      var url = getWebhookUrl();
+      if (!url) {
+        alert('已选择 n8n，但 Webhook URL 为空。请粘贴 Production URL。');
+        setBackendHint('n8n 模式但 URL 为空', 'err');
+        return;
+      }
+      setBackendHint('模式=n8n，正在调用 Webhook…', 'warn');
+      runN8nReview();
+      return;
+    }
+    setBackendHint('模式=local，走本地 Mock（不会请求 n8n）', 'warn');
+    if (!confirm('当前是【本地 Mock】，不会调用 n8n/Dify。要改用 n8n：上方模式下拉选 n8n Webhook，填 URL，再点「调用 n8n 审查」。仍继续本地 Mock 吗？')) {
+      return;
+    }
+    doParse(function (parseOk) {
+      if (state.status === 'parse_flagged' || parseOk === false) return;
+      doCompare(function () {
+        if (state.status === 'ready_for_review' || state.status === 'ready_for_export') {
+          state.allow_export = true;
+          if ($('allowExportChk')) $('allowExportChk').checked = true;
+          if (state.status === 'ready_for_review') setStatus('ready_for_export');
+        }
+        state.feChecks.mock = true;
+        setBackendHint('本地 Mock 完成（未调用 n8n）', 'ok');
+        refresh();
+      });
+    });
+  }
+  function downloadBlob(name, mime, content) {
+    var blob = new Blob([content], { type: mime });
+    var a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = name;
+    document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(function () { URL.revokeObjectURL(a.href); }, 1500);
+  }
+  function stamp() {
+    var d = new Date();
+    function p(n) { return String(n).padStart(2, '0'); }
+    return d.getFullYear() + p(d.getMonth() + 1) + p(d.getDate()) + '-' + p(d.getHours()) + p(d.getMinutes());
+  }
+  function safeName(s) { return String(s || 'task').replace(/[\\/:*?"<>|]+/g, '_').slice(0, 40); }
+  function buildWordHtml() {
+    var title = $('caseTitle').value.trim() || '被审制度';
+    var lines = [
+      '制度审核报告（脱机草稿）',
+      'Case：' + state.case_id,
+      '任务：' + title,
+      '模式：' + $('reviewMode').value,
+      '审查基准日：' + $('asOfDate').value,
+      '审查范围：' + $('reviewScope').value,
+      '',
+      '一、审查工作概况',
+      (state.report && state.report.overview) || '（尚无）',
+      '',
+      '三、评价意见',
+      (state.report && state.report.opinion) || '（尚无）',
+      '',
+      '四、主要发现'
+    ];
+    ((state.report && state.report.findings) || []).forEach(function (f) { lines.push('- ' + f); });
+    lines.push(''); lines.push('七、修改建议');
+    ((state.report && state.report.suggestions) || []).forEach(function (f) { lines.push('- ' + f); });
+    lines.push(''); lines.push('【边界】本文件为 AI 辅助审查草稿，须人工复核，不构成正式法律/审计结论。');
+    var paras = lines.map(function (line) { return '<p>' + escapeHtml(line || ' ') + '</p>'; }).join('');
+    return '<html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:w="urn:schemas-microsoft-com:office:word"><head><meta charset="utf-8"><title>制度审核报告</title></head><body>' + paras + '</body></html>';
+  }
+  function buildExcelHtml() {
+    var head = ['被审条款', '来源类别', '依据', '差异', '风险', 'QC'];
+    var rows = [head].concat((state.compareRows || []).map(function (r) {
+      return [r.clause, r.cat, r.basis, r.diff, r.risk, r.qc];
+    }));
+    var body = rows.map(function (row) {
+      return '<tr>' + row.map(function (c) { return '<td>' + escapeHtml(c) + '</td>'; }).join('') + '</tr>';
+    }).join('');
+    return '<html><head><meta charset="utf-8"><title>逐条对照</title></head><body><table border="1">' + body + '</table></body></html>';
+  }
+  
+  
+  (function initBackendBar() {
+    try {
+      var saved = localStorage.getItem('irw_n8n_webhook_url');
+      if (saved && $('n8nWebhookUrl')) $('n8nWebhookUrl').value = saved;
+      var mode = localStorage.getItem('irw_run_mode') || 'local';
+      setRunMode(mode);
+    } catch (e) { setRunMode('local'); }
+
+    if ($('btnModeLocal')) $('btnModeLocal').onclick = function () {
+      setRunMode('local');
+      alert('已切换到【本地 Mock】。若要接真，请再点「模式：n8n 真Dify」。');
+    };
+    if ($('btnModeN8n')) $('btnModeN8n').onclick = function () {
+      setRunMode('n8n');
+      var url = getWebhookUrl();
+      if (!url) {
+        alert('已切换到【n8n 真Dify】。请在右侧输入框粘贴 Webhook URL，然后点「① 调用 n8n 审查」。');
+      } else {
+        alert('已切换到【n8n 真Dify】。请点「① 调用 n8n 审查」开始（不要点仅解析）。');
+      }
+    };
+    if ($('btnSaveBackend')) $('btnSaveBackend').onclick = function () {
+      try {
+        localStorage.setItem('irw_n8n_webhook_url', getWebhookUrl());
+        localStorage.setItem('irw_run_mode', getRunMode());
+        setBackendHint('已记住：模式=' + getRunMode() + ' · URL已保存', 'ok');
+      } catch (e) { alert('无法写入 localStorage'); }
+    };
+    if ($('btnRunN8n')) $('btnRunN8n').onclick = function () {
+      setRunMode('n8n');
+      if (!getWebhookUrl()) {
+        alert('请先填写 n8n Webhook URL（Production）');
+        return;
+      }
+      runFullReview('n8n');
+    };
+    if ($('btnPingBackend')) $('btnPingBackend').onclick = function () {
+      alert('当前模式=' + getRunMode() + ' | URL=' + (getWebhookUrl() || '空') + ' | 接真步骤：1点模式n8n 2填URL 3点调用n8n审查 | 页面需http打开 | n8n须Published');
+    };
+  })();
+
+  $('btnRun').onclick = function () { syncModeUi(); runFullReview(getRunMode()); };
+  $('btnExportWord').onclick = function () {
+    if (!(state.allow_export && state.status === 'ready_for_export')) return alert('请先完成审查并确认可导出');
+    var name = '制度审查报告_' + safeName($('caseTitle').value) + '_' + state.case_id + '_' + stamp() + '.doc';
+    downloadBlob(name, 'application/msword;charset=utf-8', buildWordHtml());
+  };
+  $('btnExportExcel').onclick = function () {
+    if (!(state.allow_export && state.status === 'ready_for_export')) return alert('请先完成审查并确认可导出');
+    var name = '逐条对比主表_' + safeName($('caseTitle').value) + '_' + state.case_id + '_' + stamp() + '.xls';
+    downloadBlob(name, 'application/vnd.ms-excel;charset=utf-8', buildExcelHtml());
+  };
+
+  ['caseTitle', 'reviewMode', 'asOfDate', 'reviewScope', 'allowPublic', 'manualComment'].forEach(function (id) {
+    $(id).addEventListener('change', refresh);
+    $(id).addEventListener('input', refresh);
+  });
+  $('reviewMode').addEventListener('change', updateModeHelp);
+
+  // restore oneshot local draft if any latest key
+  try {
+    var keys = Object.keys(localStorage).filter(function (k) { return k.indexOf('irw_oneshot_') === 0; }).sort();
+    if (keys.length) {
+      var raw = JSON.parse(localStorage.getItem(keys[keys.length - 1]) || 'null');
+      if (raw && raw.case_id) {
+        state.case_id = raw.case_id;
+        state.reviewed = raw.reviewed || null;
+        state.refs = raw.refs || [];
+        state.allow_export = !!raw.allow_export;
+        if (raw.title) $('caseTitle').value = raw.title;
+        if (raw.as_of_date) $('asOfDate').value = raw.as_of_date;
+        if (raw.review_mode) $('reviewMode').value = raw.review_mode;
+        if (raw.review_scope) $('reviewScope').value = raw.review_scope;
+        if (raw.status) state.status = raw.status;
+      }
+    }
+  } catch (e) {}
+
+  if (!$('asOfDate').value) $('asOfDate').value = new Date().toISOString().slice(0, 10);
+  if (!state.case_id) state.case_id = genCaseId();
+  setStatus(state.status || 'draft');
+  refresh();
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,74 @@
+{
+  "ok": true,
+  "executed_at": "2026-11-10T03:07:39.026Z",
+  "cases": [
+    {
+      "case_id": "CASE-A",
+      "result": "pass",
+      "checks": [
+        "parse_completed",
+        "compare_enabled",
+        "dify_outputs",
+        "export_gate",
+        "export_success"
+      ],
+      "export_files": [
+        "制度审查报告_CASE-A成功主链_CASE-A_202611101107.txt",
+        "逐条对比主表_CASE-A成功主链_CASE-A_202611101107.csv",
+        "版本变化表_CASE-A成功主链_CASE-A_202611101107.csv",
+        "CASE-A_QC结果_v0.1_202611101107.json"
+      ]
+    },
+    {
+      "case_id": "CASE-C",
+      "result": "pass",
+      "checks": [
+        "parse_flagged",
+        "core_fail_blocking",
+        "compare_blocked",
+        "export_blocked",
+        "reparse_allowed"
+      ],
+      "blocking": [
+        {
+          "field": "parse_status",
+          "file_id": "REF-001",
+          "code": "PARSE_CORE_BASIS_FAILED",
+          "message": "核心依据解析失败：核心失败-扫描件.pdf"
+        }
+      ]
+    },
+    {
+      "case_id": "CASE-D",
+      "result": "pass",
+      "checks": [
+        "export_blocked_before_allow",
+        "full_export",
+        "word_only_retry",
+        "partial_failure_no_chain_rollback"
+      ],
+      "export_run": "EXPORT-001"
+    },
+    {
+      "case_id": "CASE-B",
+      "result": "pass",
+      "checks": [
+        "no_blocking_on_warning",
+        "compare_allowed",
+        "dify_continues",
+        "qc_flag_or_warning",
+        "export_allowed"
+      ],
+      "notes": "低置信/无历史版本仅 warning，不误阻断"
+    }
+  ],
+  "score": {
+    "CASE-A": "pass",
+    "CASE-C": "pass",
+    "CASE-D": "pass",
+    "CASE-B": "pass"
+  },
+  "acceptance": "pass",
+  "p1_open": 0,
+  "notes": "CASE-A/B/C/D 脱机正式记分通过；未接真实 n8n/Dify/OA。"
+}

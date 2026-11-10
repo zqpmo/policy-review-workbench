@@ -1,0 +1,8 @@
+node_modules/
+__pycache__/
+*.pyc
+.DS_Store
+*.log
+# local backend config if added later
+.env
+secrets.env
