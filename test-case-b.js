@@ -54,9 +54,18 @@ async function main() {
   const st = await waitParse(parse, caseId, start.job_id);
   assert(st.status === 'completed', 'B should not block on warning');
   assert(!(st.blocking_issues || []).length, 'no blocking');
-  // partial warning expected on low conf file
-  const partial = (st.files || []).some(f => f.file_id === 'REF-002' && (f.parse_status === 'partial' || (f.overall_confidence != null && f.overall_confidence < 0.8)));
-  assert(partial || (st.warning_issues || []).length >= 0, 'warning path present');
+  // Require an actual warning signal (not a vacuous length >= 0)
+  const partial = (st.files || []).some(
+    f =>
+      f.file_id === 'REF-002' &&
+      (f.parse_status === 'partial' ||
+        (f.overall_confidence != null && f.overall_confidence < 0.8))
+  );
+  const hasWarningIssues = (st.warning_issues || []).length > 0;
+  assert(
+    partial || hasWarningIssues,
+    'expected low-confidence partial file or non-empty warning_issues on CASE-B'
+  );
 
   const byId = {};
   st.files.forEach(f => { byId[f.file_id] = f; });
@@ -111,14 +120,38 @@ async function main() {
   };
   prev.cases = (prev.cases || []).filter(c => c.case_id !== 'CASE-B').concat([b]);
   prev.score = Object.assign({}, prev.score, { 'CASE-B': 'pass' });
-  prev.acceptance = 'pass';
   prev.p1_open = 0;
   prev.executed_at = new Date().toISOString();
-  prev.notes = 'CASE-A/B/C/D 脱机正式记分通过；未接真实 n8n/Dify/OA。';
-  prev.ok = true;
+
+  // Only claim cases that are actually present in score — never hardcode A/B/C/D.
+  const scored = ['CASE-A', 'CASE-B', 'CASE-C', 'CASE-D'].filter(
+    id => prev.score && prev.score[id] === 'pass'
+  );
+  const failed = ['CASE-A', 'CASE-B', 'CASE-C', 'CASE-D'].filter(
+    id => prev.score && prev.score[id] && prev.score[id] !== 'pass'
+  );
+  if (failed.length) {
+    prev.acceptance = 'fail';
+    prev.ok = false;
+    prev.notes = 'Failed: ' + failed.join(', ') + '；未接真实 n8n/Dify/OA。';
+  } else if (scored.length === 4) {
+    prev.acceptance = 'pass';
+    prev.ok = true;
+    prev.notes = 'CASE-A/B/C/D 脱机正式记分通过；未接真实 n8n/Dify/OA。';
+  } else {
+    // Partial scoreboard (e.g. only CASE-B run so far)
+    prev.acceptance = scored.length ? 'partial' : 'pending';
+    prev.ok = false;
+    prev.notes =
+      'Scored only: ' +
+      (scored.join(', ') || '(none)') +
+      '；其余 CASE 未在本轮执行。未接真实 n8n/Dify/OA。';
+  }
+
   fs.writeFileSync(OUT, JSON.stringify(prev, null, 2));
 
-  console.log(JSON.stringify({ ok: true, case_b: b, score: prev.score }, null, 2));
+  console.log(JSON.stringify({ ok: prev.ok, case_b: b, score: prev.score, notes: prev.notes }, null, 2));
+  if (!prev.ok && prev.acceptance === 'fail') process.exit(1);
 }
 
 main().catch(e => { console.error(e); process.exit(1); });

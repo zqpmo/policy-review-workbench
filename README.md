@@ -35,7 +35,9 @@ node test-case-acceptance.js   # writes CASE_ACCEPTANCE_RESULT.json
 node test-case-b.js            # merges CASE-B into the result file
 ```
 
-Expected: each test prints `ok: true` (or equivalent success JSON); acceptance file shows `CASE-A/B/C/D = pass`, `p1_open: 0`.
+Expected after the **full sequence** (acceptance then CASE-B): each script exits 0; scorecard shows `CASE-A/B/C/D = pass`, `acceptance: "pass"`, `p1_open: 0`.
+
+If you run **only** `test-case-b.js` on a fresh tree, the scorecard is **partial** (`CASE-B` only, `ok: false`, notes list what was scored) — it will **not** claim A/B/C/D all passed.
 
 ## Architecture
 
