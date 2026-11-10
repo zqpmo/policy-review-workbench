@@ -6,7 +6,7 @@
 
 [![Node](https://img.shields.io/badge/node-%3E%3D18-brightgreen)](https://nodejs.org/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](./LICENSE)
-[![Tests](https://img.shields.io/badge/tests-6%20suites-orange)](#testing)
+[![Tests](https://img.shields.io/badge/tests-7%20suites-orange)](#testing)
 
 ## Why this exists
 
@@ -32,6 +32,7 @@ node test-parse-layer.js
 node test-flow-matrix.js
 node test-dify-export.js
 node test-export-source.js   # result source + CSV header + metadata.json
+node test-progress-restore.js # legacy exportable draft cannot restore as exportable
 node test-case-acceptance.js   # writes CASE_ACCEPTANCE_RESULT.json
 node test-case-b.js            # merges CASE-B into the result file
 ```
@@ -87,10 +88,11 @@ Leave them empty for pure offline use.
 
 ```bash
 node test-parse-layer.js && node test-flow-matrix.js && node test-dify-export.js \
-  && node test-export-source.js && node test-case-acceptance.js && node test-case-b.js
+  && node test-export-source.js && node test-progress-restore.js \
+  && node test-case-acceptance.js && node test-case-b.js
 ```
 
-Tests are **pure Node** (no npm install). Acceptance scripts read/write `CASE_ACCEPTANCE_RESULT.json` **next to the script**.
+Tests are **pure Node** (no npm install). Acceptance scripts read/write `CASE_ACCEPTANCE_RESULT.json` **next to the script**. Restore rules live in `policy-review-progress.js` (shared by UI + tests) — covers an **old draft saved as `ready_for_export` / `allow_export:true` refreshed without results**: export stays disabled until 「开始审查」 runs again.
 
 ## Scope & safety
 

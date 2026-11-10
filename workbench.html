@@ -282,6 +282,7 @@ details.adv{border:1px dashed var(--border);border-radius:8px;padding:8px 10px;b
   </div>
 </div>
 
+<script src="policy-review-progress.js"></script>
 <script>
 (function () {
   var SUBCATS = {
@@ -740,25 +741,13 @@ details.adv{border:1px dashed var(--border);border-radius:8px;padding:8px 10px;b
     ensureCaseIdentity();
     if (state.status === 'draft' && state.reviewed) setStatus('uploaded');
     try {
-      // Option 1: persist form fields only — NOT compare/report/QC/result_source.
-      // Never persist allow_export=true: results are not saved, so export must not look ready after restore.
-      var st = state.status;
-      if (st === 'ready_for_export' || st === 'ready_for_review' || st === 'qc_running' || st === 'comparing') {
-        st = state.reviewed ? 'uploaded' : 'draft';
-      }
-      localStorage.setItem(storageKey(), JSON.stringify({
-        case_id: state.case_id,
+      var payload = PolicyReviewProgress.buildSavePayload(state, {
         title: $('caseTitle').value,
-        status: st,
-        reviewed: state.reviewed,
-        refs: state.refs,
-        allow_export: false,
-        results_saved: false,
         as_of_date: $('asOfDate').value,
         review_mode: $('reviewMode').value,
-        review_scope: $('reviewScope').value,
-        saved_at: new Date().toISOString()
-      }));
+        review_scope: $('reviewScope').value
+      });
+      localStorage.setItem(storageKey(), JSON.stringify(payload));
       alert('进度已保存在本浏览器（仅表单/文件元数据，不含比对与 QC 结果）。\n刷新后需重新运行「开始审查」才能导出。\n键：' + storageKey());
     } catch (e) { alert('本浏览器无法写入本地存储：' + (e.message || e)); }
     refresh();
@@ -1263,32 +1252,27 @@ details.adv{border:1px dashed var(--border);border-radius:8px;padding:8px 10px;b
   });
   $('reviewMode').addEventListener('change', updateModeHelp);
 
-  // restore oneshot local draft if any latest key
+  // restore oneshot local draft if any latest key (via PolicyReviewProgress — testable contract)
   try {
     var keys = Object.keys(localStorage).filter(function (k) { return k.indexOf('irw_oneshot_') === 0; }).sort();
     if (keys.length) {
       var raw = JSON.parse(localStorage.getItem(keys[keys.length - 1]) || 'null');
-      if (raw && raw.case_id) {
-        state.case_id = raw.case_id;
-        state.reviewed = raw.reviewed || null;
-        state.refs = raw.refs || [];
-        // Results (compare/report/QC/result_source) are never persisted — never restore export-ready.
-        state.allow_export = false;
-        state.compareRows = [];
-        state.report = null;
-        state.qc = null;
-        state.result_source = 'unknown';
-        if (raw.title) $('caseTitle').value = raw.title;
+      var rt = PolicyReviewProgress.applyRestore(raw);
+      if (rt) {
+        state.case_id = rt.case_id;
+        state.reviewed = rt.reviewed;
+        state.refs = rt.refs;
+        state.allow_export = rt.allow_export;
+        state.compareRows = rt.compareRows;
+        state.report = rt.report;
+        state.qc = rt.qc;
+        state.result_source = rt.result_source;
+        state.status = rt.status;
+        state.parseLog = rt.parseLog;
+        if (rt.title) $('caseTitle').value = rt.title;
         if (raw.as_of_date) $('asOfDate').value = raw.as_of_date;
         if (raw.review_mode) $('reviewMode').value = raw.review_mode;
         if (raw.review_scope) $('reviewScope').value = raw.review_scope;
-        var restored = raw.status || 'draft';
-        if (restored === 'ready_for_export' || restored === 'ready_for_review' ||
-            restored === 'qc_running' || restored === 'comparing' || restored === 'parsing') {
-          restored = state.reviewed ? 'uploaded' : 'draft';
-        }
-        state.status = restored;
-        state.parseLog = [{ type: 'warn', text: '已恢复表单进度；比对/QC/结果来源未保存，请重新「开始审查」后再导出。' }];
       }
     }
   } catch (e) {}
