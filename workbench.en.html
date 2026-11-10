@@ -816,7 +816,7 @@ details.adv{border:1px dashed var(--border);border-radius:8px;padding:8px 10px;b
           qc_overall: 'flag',
           qc_issues: [
             { issue_no: 'QC-01', issue_type: 'Report vs table consistency', issue_detail: 'Main table 3 findings aligned with report F-01–F-03 (Mock)' },
-            { issue_no: 'QC-02', issue_type: 'Cautious wording', issue_detail: 'Uses cautious wording such as 'insufficient handoff'' }
+            { issue_no: 'QC-02', issue_type: 'Cautious wording', issue_detail: 'Uses cautious wording such as \"insufficient handoff\"' }
           ]
         };
         state.compareRows = state.compareRows.map(function (r) { return Object.assign({}, r, { qc: 'pass' }); });

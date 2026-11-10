@@ -98,7 +98,7 @@ node test-parse-layer.js && node test-flow-matrix.js && node test-dify-export.js
   && node test-case-acceptance.js && node test-case-b.js
 ```
 
-Tests are **pure Node** (no npm install). Acceptance scripts read/write `CASE_ACCEPTANCE_RESULT.json` **next to the script**. Restore + export gating live in `policy-review-progress.js` and are **wired into** `workbench.html` (`updateButtons` + both export click handlers call `canExport`). Covers: old `ready_for_export` drafts restore disabled; **button enable and click use the same predicate** (flag + status + live rows + qc).
+Tests are **pure Node** (no npm install). Acceptance scripts read/write `CASE_ACCEPTANCE_RESULT.json` **next to the script**. Restore + export gating live in `policy-review-progress.js` and are **wired into both** `workbench.html` and `workbench.en.html`. `test-export-gate-wiring.js` also **syntax-checks** both pages' inline scripts (`vm.Script`) and asserts `canExport` on buttons + clicks. Covers: old `ready_for_export` drafts restore disabled; **button enable and click use the same predicate** (flag + status + live rows + qc).
 
 ## Scope & safety
 

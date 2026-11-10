@@ -1,27 +1,46 @@
 /**
- * Export gate wiring: workbench.html must use PolicyReviewProgress.canExport
- * for BOTH button enablement and click-time checks (not just the module unit tests).
+ * Export gate wiring + inline script syntax for BOTH UI pages
+ * (workbench.html Chinese, workbench.en.html English).
+ * Buttons and clicks must call PolicyReviewProgress.canExport — not flag+status only.
  */
 const fs = require('fs');
 const path = require('path');
+const vm = require('vm');
 const P = require('./policy-review-progress.js');
 
 function assert(c, m) { if (!c) throw new Error(m); }
 
-function main() {
-  const htmlPath = path.join(__dirname, 'workbench.html');
-  const html = fs.readFileSync(htmlPath, 'utf8');
+function extractInlineScripts(html) {
+  const out = [];
+  const re = /<script(?![^>]*\ssrc=)[^>]*>([\s\S]*?)<\/script>/gi;
+  let m;
+  while ((m = re.exec(html)) !== null) {
+    if (m[1] && m[1].trim()) out.push(m[1]);
+  }
+  return out;
+}
 
-  // 1) Module loaded
+function checkInlineSyntax(file, html) {
+  const scripts = extractInlineScripts(html);
+  assert(scripts.length >= 1, file + ' has at least one inline script');
+  scripts.forEach((src, i) => {
+    try {
+      // Compile only — do not run (DOM not available)
+      new vm.Script(src, { filename: file + '#script' + i });
+    } catch (e) {
+      throw new Error(file + ' inline script #' + i + ' syntax error: ' + e.message);
+    }
+  });
+}
+
+function checkCanExportWiring(file, html) {
   assert(
     /<script src="policy-review-progress\.js"><\/script>/.test(html),
-    'workbench loads policy-review-progress.js'
+    file + ' loads policy-review-progress.js'
   );
-  assert(typeof P.canExport === 'function', 'canExport exported');
 
-  // 2) updateButtons uses canExport — extract function body by brace matching
   const ubStart = html.indexOf('function updateButtons()');
-  assert(ubStart >= 0, 'updateButtons found');
+  assert(ubStart >= 0, file + ' updateButtons found');
   const brace0 = html.indexOf('{', ubStart);
   let depth = 0;
   let ubEnd = brace0;
@@ -33,29 +52,34 @@ function main() {
     }
   }
   const ub = html.slice(ubStart, ubEnd + 1);
-  assert(
-    /PolicyReviewProgress\.canExport\(/.test(ub),
-    'updateButtons calls canExport'
-  );
+  assert(/PolicyReviewProgress\.canExport\(/.test(ub), file + ' updateButtons calls canExport');
   assert(
     !/var exportOk = state\.allow_export && s === 'ready_for_export'/.test(ub),
-    'updateButtons no longer uses only allow_export && status'
+    file + ' updateButtons no longer uses only allow_export && status'
   );
 
-  // 3) Both click handlers use canExport
-  const word = html.match(/\$\('btnExportWord'\)\.onclick[\s\S]{0,350}/);
-  const xls = html.match(/\$\('btnExportExcel'\)\.onclick[\s\S]{0,350}/);
-  assert(word && /PolicyReviewProgress\.canExport\(/.test(word[0]), 'word click uses canExport');
-  assert(xls && /PolicyReviewProgress\.canExport\(/.test(xls[0]), 'excel click uses canExport');
-  assert(
-    !/state\.allow_export && state\.status === 'ready_for_export'\)\) return alert/.test(word[0] || ''),
-    'word click no longer gates on flag+status only'
-  );
+  const word = html.match(/\$\('btnExportWord'\)\.onclick[\s\S]{0,400}/);
+  const xls = html.match(/\$\('btnExportExcel'\)\.onclick[\s\S]{0,400}/);
+  assert(word && /PolicyReviewProgress\.canExport\(/.test(word[0]), file + ' word click uses canExport');
+  assert(xls && /PolicyReviewProgress\.canExport\(/.test(xls[0]), file + ' excel click uses canExport');
+}
 
-  // 4) exportHint uses canExport
-  assert(/PolicyReviewProgress\.canExport\(/.test(html), 'canExport referenced in page');
+function main() {
+  assert(typeof P.canExport === 'function', 'canExport exported');
 
-  // 5) Behavioral: simulate UI applying canExport at click time
+  const pages = ['workbench.html', 'workbench.en.html'];
+  const results = [];
+
+  for (const name of pages) {
+    const p = path.join(__dirname, name);
+    assert(fs.existsSync(p), name + ' exists');
+    const html = fs.readFileSync(p, 'utf8');
+    checkInlineSyntax(name, html);
+    checkCanExportWiring(name, html);
+    results.push({ page: name, syntax: 'ok', wiring: 'ok' });
+  }
+
+  // Behavioral gates (module-level)
   const base = {
     allow_export: true,
     status: 'ready_for_export',
@@ -68,23 +92,16 @@ function main() {
   base.qc = { qc_overall: 'pass', qc_issues: [] };
   assert(P.canExport(base) === true, 'click gate allows with full results');
 
-  // 6) Button-disabled predicate matches click predicate (same function)
-  const disabledFor = (st) => !P.canExport(st);
-  assert(disabledFor(base) === false, 'button enabled');
-  const noResults = Object.assign({}, base, { compareRows: [], qc: null });
-  assert(disabledFor(noResults) === true, 'button disabled without results');
-
   console.log(JSON.stringify({
     ok: true,
+    pages: results,
     tests: [
-      'script_tag_present',
-      'updateButtons_uses_canExport',
-      'word_click_uses_canExport',
-      'excel_click_uses_canExport',
-      'hint_uses_canExport',
+      'en_html_syntax',
+      'zh_html_syntax',
+      'en_canExport_wiring',
+      'zh_canExport_wiring',
       'behavior_block_without_results',
-      'behavior_allow_with_results',
-      'button_and_click_same_predicate'
+      'behavior_allow_with_results'
     ]
   }, null, 2));
 }

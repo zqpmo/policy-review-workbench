@@ -98,7 +98,7 @@ node test-parse-layer.js && node test-flow-matrix.js && node test-dify-export.js
   && node test-case-acceptance.js && node test-case-b.js
 ```
 
-纯 Node，**无需 npm install**。验收脚本读写脚本旁的 `CASE_ACCEPTANCE_RESULT.json`。恢复与导出门禁在 `policy-review-progress.js`，并**已接入** `workbench.html`（`updateButtons` 与两个导出点击均调用 `canExport`）。覆盖：旧 `ready_for_export` 草稿恢复后禁导；**按钮启用与点击使用同一谓词**（flag + 状态 + 实时 rows + qc）。
+纯 Node，**无需 npm install**。验收脚本读写脚本旁的 `CASE_ACCEPTANCE_RESULT.json`。恢复与导出门禁在 `policy-review-progress.js`，并**已接入** `workbench.html` 与 `workbench.en.html`。`test-export-gate-wiring.js` 还会对**两页内联脚本做语法检查**（`vm.Script`），并断言按钮与点击均调用 `canExport`。覆盖：旧 `ready_for_export` 草稿恢复后禁导；**按钮启用与点击使用同一谓词**（flag + 状态 + 实时 rows + qc）。
 
 ## 范围与安全
 
