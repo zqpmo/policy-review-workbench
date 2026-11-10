@@ -15,9 +15,9 @@ Policy/regulation review needs a **repeatable chain**: ingest clauses, compare a
 - **Parse layer** — file → structured clauses (async jobs, failure flags block the chain)
 - **Flow matrix** — button/state machine: what is legal next (compare / QC / export / hold)
 - **Compare & QC layer** — contract-shaped payload (Dify-compatible stub; swap for a real HTTP backend later)
-- **Export layer** — gated Word/CSV/JSON drafts; blocked until status allows
+- **Export layer** — gated **plain-text report + CSV + JSON** drafts (not binary `.docx`); blocked until status allows
 
-**Safety default:** offline. Webhook/Dify fields are optional stubs (`http://127.0.0.1:...`). No OA, no production credentials.
+**Safety default:** **local Mock** — no network. Webhook/Dify fields are optional (`http://127.0.0.1:...`). No OA, no production credentials.
 
 ## Quick start
 
@@ -49,6 +49,16 @@ Expected: each test prints `ok: true` (or equivalent success JSON); acceptance f
 | `test-*.js` | Node unit + CASE acceptance suites |
 | `CASE_ACCEPTANCE_RESULT.json` | Last acceptance scorecard |
 
+### Known limitations (honest list)
+
+- **Architecture prototype / offline acceptance harness** — not a production compliance system.
+- **Parse layer is a stub** (async job simulation + failure flags). It does **not** extract text from real PDF/DOCX.
+- **“Word” export is a plain-text report** (`.txt`, `text/plain`) plus CSV/JSON — **not** a binary `.docx`.
+- **Default mode is local Mock** — no HTTP. Choosing **n8n mode** and filling a Webhook URL will `fetch` your payload (document metadata / clause JSON) to **that URL you control**; leave empty to stay offline.
+- **Dify layer is a contract stub** (`dify_io_v0.1`); swap in a real backend only if you wire it yourself.
+- Unit + CASE tests are **offline only** (no real n8n/Dify/OA). They do not prove end-to-end backend behavior.
+- Exported artifacts are **drafts** until human review; the tool does not issue final legal/audit determinations.
+
 ### Chain gates (summary)
 
 1. **Parse** must complete; core-basis parse failure → `parse_flagged` → compare/export **blocked**, reparse allowed.
@@ -58,7 +68,12 @@ Expected: each test prints `ok: true` (or equivalent success JSON); acceptance f
 
 ## Optional backends (not required)
 
-The UI exposes fields for a local n8n webhook and a Dify-compatible endpoint. Leave them empty for pure offline use. When you wire a backend, keep the same JSON contract as `buildDifyInput()` in `policy-review-dify-layer.js`.
+The UI defaults to **本地 Mock** (no network). Optional fields:
+
+- **n8n Webhook** — if you select n8n mode and set a URL, the browser will `POST` the case payload to **that URL**. Only enable when you trust the endpoint.
+- **Dify-compatible contract** — keep the JSON shape of `buildDifyInput()` in `policy-review-dify-layer.js` if you wire a real service.
+
+Leave them empty for pure offline use.
 
 ## Testing
 
@@ -71,8 +86,8 @@ Tests are **pure Node** (no npm install). `test-case-acceptance.js` and `test-ca
 
 ## Scope & safety
 
-- **Does:** local clause parse stubs, state machine, gated exports, offline acceptance.
-- **Does not:** connect to OA/production Dify/n8n unless you configure it; issue final legal/compliance determinations; read secrets.
+- **Does:** local clause **stubs**, state machine, gated **text/CSV/JSON** exports, offline acceptance.
+- **Does not:** parse real PDF/DOCX binaries; produce binary `.docx`; connect to OA/production Dify/n8n unless **you** configure a Webhook URL; issue final legal/compliance determinations; read secrets.
 - Treat exported drafts as **drafts** until human review.
 
 ## License

@@ -286,8 +286,8 @@ async function main() {
   };
 
   const fs = require('fs');
-const path = require('path');
-const OUT = path.join(__dirname, 'CASE_ACCEPTANCE_RESULT.json');;
+  const path = require('path');
+  const OUT = path.join(__dirname, 'CASE_ACCEPTANCE_RESULT.json');
   fs.writeFileSync(OUT, JSON.stringify(summary, null, 2));
   console.log(JSON.stringify(summary, null, 2));
   if (!pass) process.exit(1);

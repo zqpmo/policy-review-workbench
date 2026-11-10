@@ -5,7 +5,23 @@ const { createDifyLayer } = require('./policy-review-dify-layer.js');
 const { createExportLayer } = require('./policy-review-export-layer.js');
 const fs = require('fs');
 const path = require('path');
-const OUT = path.join(__dirname, 'CASE_ACCEPTANCE_RESULT.json');;
+const OUT = path.join(__dirname, 'CASE_ACCEPTANCE_RESULT.json');
+
+function loadAcceptance() {
+  if (fs.existsSync(OUT)) {
+    return JSON.parse(fs.readFileSync(OUT, 'utf8'));
+  }
+  // First-run: seed a skeleton so CASE-B can run standalone
+  return {
+    ok: false,
+    executed_at: new Date().toISOString(),
+    cases: [],
+    score: {},
+    acceptance: 'pending',
+    p1_open: 0,
+    notes: 'seeded before CASE-B',
+  };
+}
 
 function assert(c, m) { if (!c) throw new Error(m); }
 function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
@@ -85,8 +101,8 @@ async function main() {
   });
   assert(out.export_status === 'success', 'export ok');
 
-  // merge into acceptance result
-  const prev = JSON.parse(fs.readFileSync(OUT, 'utf8'));
+  // merge into acceptance result (seed on first run)
+  const prev = loadAcceptance();
   const b = {
     case_id: 'CASE-B',
     result: 'pass',

@@ -77,7 +77,7 @@
        */
       exportArtifacts: function (payload) {
         payload = payload || {};
-        var caseId = payload.case_id || 'CASE';
+        var caseId = String(payload.case_id || 'CASE').replace(/[\\/:*?"<>|\s]+/g, '_').slice(0, 40);
         var title = safeName(payload.case_title || '制度审查');
         var stamp = nowStamp();
         var targets = payload.export_targets || ['word', 'excel', 'qc_json'];
@@ -100,6 +100,7 @@
           try {
             if (t === 'word') {
               if (!result.word_report) throw { code: 'EXPORT_WORD_FAILED', message: '缺少 word_report' };
+              // Plain-text report (not binary .docx) — extension is .txt on purpose
               var wname = '制度审查报告_' + title + '_' + caseId + '_' + stamp + '.txt';
               artifacts.push({
                 artifact_type: 'word',
