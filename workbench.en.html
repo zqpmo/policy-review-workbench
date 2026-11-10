@@ -740,7 +740,7 @@ details.adv{border:1px dashed var(--border);border-radius:8px;padding:8px 10px;b
     refresh();
   };
 
-  function storageKey() { return 'irw_oneshot_' + (state.case_id || 'draft'); }
+  function storageKey() { return PolicyReviewProgress.storageKey('en', state.case_id); }
   $('btnSave').onclick = function () {
     ensureCaseIdentity();
     if (state.status === 'draft' && state.reviewed) setStatus('uploaded');
@@ -1256,28 +1256,25 @@ details.adv{border:1px dashed var(--border);border-radius:8px;padding:8px 10px;b
   });
   $('reviewMode').addEventListener('change', updateModeHelp);
 
-  // restore oneshot local draft if any latest key (via PolicyReviewProgress — testable contract)
+  // restore oneshot local draft (EN-scoped keys only — never ZH drafts)
   try {
-    var keys = Object.keys(localStorage).filter(function (k) { return k.indexOf('irw_oneshot_') === 0; }).sort();
-    if (keys.length) {
-      var raw = JSON.parse(localStorage.getItem(keys[keys.length - 1]) || 'null');
-      var rt = PolicyReviewProgress.applyRestore(raw);
-      if (rt) {
-        state.case_id = rt.case_id;
-        state.reviewed = rt.reviewed;
-        state.refs = rt.refs;
-        state.allow_export = rt.allow_export;
-        state.compareRows = rt.compareRows;
-        state.report = rt.report;
-        state.qc = rt.qc;
-        state.result_source = rt.result_source;
-        state.status = rt.status;
-        state.parseLog = rt.parseLog;
-        if (rt.title) $('caseTitle').value = rt.title;
-        if (raw.as_of_date) $('asOfDate').value = raw.as_of_date;
-        if (raw.review_mode) $('reviewMode').value = raw.review_mode;
-        if (raw.review_scope) $('reviewScope').value = raw.review_scope;
-      }
+    var raw = PolicyReviewProgress.loadLatestDraft(localStorage, 'en');
+    var rt = PolicyReviewProgress.applyRestore(raw);
+    if (rt) {
+      state.case_id = rt.case_id;
+      state.reviewed = rt.reviewed;
+      state.refs = rt.refs;
+      state.allow_export = rt.allow_export;
+      state.compareRows = rt.compareRows;
+      state.report = rt.report;
+      state.qc = rt.qc;
+      state.result_source = rt.result_source;
+      state.status = rt.status;
+      state.parseLog = rt.parseLog;
+      if (rt.title) $('caseTitle').value = rt.title;
+      if (raw.as_of_date) $('asOfDate').value = raw.as_of_date;
+      if (raw.review_mode) $('reviewMode').value = raw.review_mode;
+      if (raw.review_scope) $('reviewScope').value = raw.review_scope;
     }
   } catch (e) {}
 

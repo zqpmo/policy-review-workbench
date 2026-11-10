@@ -68,6 +68,7 @@ If you run **only** `test-case-b.js` on a fresh tree, the scorecard is **partial
 - **Result source is recorded when results are produced** (`local_mock` | `n8n` | `unknown`), not from the UI mode toggle at export time. Export disclaimers follow that recorded source (n8n results are not labeled as Mock).
 - **`metadata.json` is a companion file.** If a CSV or QC JSON is forwarded alone, the source disclaimer does **not** travel with it — keep `metadata.json` alongside, or re-attach source yourself.
 - **Save progress persists form/metadata only** — not compare/report/QC/`result_source`. After refresh you must re-run **Start review** before export (export-ready is never restored).
+- **Progress keys are language-scoped** (`irw_oneshot_zh_*` vs `irw_oneshot_en_*`). Chinese and English pages do **not** share drafts (category labels differ per language). Legacy unprefixed keys are ignored.
 - **Default mode is local Mock** — no HTTP. Choosing **n8n mode** and filling a Webhook URL will `fetch` your payload (document metadata / clause JSON) to **that URL you control**; leave empty to stay offline.
 - **Dify layer is a contract stub** (`dify_io_v0.1`); swap in a real backend only if you wire it yourself.
 - Unit + CASE tests are **offline only** (no real n8n/Dify/OA). They do not prove end-to-end backend behavior. Much UI logic is **inline in `workbench.html`**; restore rules are shared via `policy-review-progress.js`.

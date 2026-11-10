@@ -23,6 +23,44 @@
     return status || 'draft';
   }
 
+  function normalizeLang(lang) {
+    return lang === 'en' ? 'en' : 'zh';
+  }
+
+  /**
+   * Language-scoped localStorage key so ZH and EN pages never share a draft
+   * (category labels differ per language — cross-restore would mis-match).
+   * Format: irw_oneshot_{zh|en}_{case_id|draft}
+   */
+  function storageKey(lang, caseId) {
+    return 'irw_oneshot_' + normalizeLang(lang) + '_' + (caseId || 'draft');
+  }
+
+  function keyPrefix(lang) {
+    return 'irw_oneshot_' + normalizeLang(lang) + '_';
+  }
+
+  function listDraftKeys(store, lang) {
+    var prefix = keyPrefix(lang);
+    try {
+      return Object.keys(store)
+        .filter(function (k) { return k.indexOf(prefix) === 0; })
+        .sort();
+    } catch (e) {
+      return [];
+    }
+  }
+
+  function loadLatestDraft(store, lang) {
+    var keys = listDraftKeys(store, lang);
+    if (!keys.length) return null;
+    try {
+      return JSON.parse(store.getItem(keys[keys.length - 1]) || 'null');
+    } catch (e) {
+      return null;
+    }
+  }
+
   /**
    * Build localStorage payload. Never includes compare/report/QC/result_source.
    * Never sets allow_export true (results are not persisted).
@@ -89,6 +127,10 @@
     buildSavePayload: buildSavePayload,
     applyRestore: applyRestore,
     downgradeStatus: downgradeStatus,
-    canExport: canExport
+    canExport: canExport,
+    storageKey: storageKey,
+    keyPrefix: keyPrefix,
+    listDraftKeys: listDraftKeys,
+    loadLatestDraft: loadLatestDraft
   };
 });

@@ -104,6 +104,54 @@ async function main() {
   assert(d.status === 'draft', 'no reviewed → draft');
   assert(d.allow_export === false, 'draft never exportable');
 
+  // 8) Language-scoped storage keys: ZH and EN never share a draft
+  assert(P.storageKey('zh', 'CASE-1') !== P.storageKey('en', 'CASE-1'), 'zh/en keys differ');
+  assert(P.storageKey('zh', 'CASE-1') === 'irw_oneshot_zh_CASE-1', 'zh key format');
+  assert(P.storageKey('en', 'CASE-1') === 'irw_oneshot_en_CASE-1', 'en key format');
+  assert(P.storageKey('xx', null) === 'irw_oneshot_zh_draft', 'unknown lang defaults to zh');
+
+  const fakeStore = {
+    data: {},
+    getItem(k) { return Object.prototype.hasOwnProperty.call(this.data, k) ? this.data[k] : null; },
+    setItem(k, v) { this.data[k] = String(v); },
+    key(i) { return Object.keys(this.data)[i]; },
+    get length() { return Object.keys(this.data).length; }
+  };
+  // Simulate Object.keys on localStorage-like: our listDraftKeys uses Object.keys(store)
+  // so attach enumerable props:
+  fakeStore['irw_oneshot_zh_CASE-ZH'] = JSON.stringify({ case_id: 'CASE-ZH', status: 'uploaded', refs: [{ source_category: '上位约束源' }] });
+  fakeStore['irw_oneshot_en_CASE-EN'] = JSON.stringify({ case_id: 'CASE-EN', status: 'uploaded', refs: [{ source_category: 'Upper-rule source' }] });
+  // Also make them appear via getItem path used by loadLatestDraft
+  // listDraftKeys uses Object.keys(store) — plain object props work if store is the object itself
+  const store = {};
+  store['irw_oneshot_zh_CASE-ZH'] = JSON.stringify({ case_id: 'CASE-ZH', status: 'uploaded', refs: [{ source_category: '上位约束源' }] });
+  store['irw_oneshot_en_CASE-EN'] = JSON.stringify({ case_id: 'CASE-EN', status: 'uploaded', refs: [{ source_category: 'Upper-rule source' }] });
+  const storeLike = {
+    getItem(k) { return Object.prototype.hasOwnProperty.call(store, k) ? store[k] : null; }
+  };
+  // Object.keys must see the keys — put them on storeLike itself
+  storeLike['irw_oneshot_zh_CASE-ZH'] = store['irw_oneshot_zh_CASE-ZH'];
+  storeLike['irw_oneshot_en_CASE-EN'] = store['irw_oneshot_en_CASE-EN'];
+
+  const zhKeys = P.listDraftKeys(storeLike, 'zh');
+  const enKeys = P.listDraftKeys(storeLike, 'en');
+  assert(zhKeys.length === 1 && zhKeys[0].indexOf('irw_oneshot_zh_') === 0, 'zh list only zh keys');
+  assert(enKeys.length === 1 && enKeys[0].indexOf('irw_oneshot_en_') === 0, 'en list only en keys');
+
+  const zhDraft = P.loadLatestDraft(storeLike, 'zh');
+  const enDraft = P.loadLatestDraft(storeLike, 'en');
+  assert(zhDraft && zhDraft.case_id === 'CASE-ZH', 'zh loads zh draft');
+  assert(enDraft && enDraft.case_id === 'CASE-EN', 'en loads en draft');
+  assert(zhDraft.case_id !== enDraft.case_id, 'cross-language load does not mix drafts');
+  // ZH page never sees EN draft
+  assert(!zhKeys.some(k => k.indexOf('en_') >= 0), 'zh keys contain no en segment');
+  assert(!enKeys.some(k => k.indexOf('zh_') >= 0), 'en keys contain no zh segment');
+
+  // Legacy unprefixed keys are ignored (avoid cross-language restore bugs)
+  storeLike['irw_oneshot_LEGACY'] = JSON.stringify({ case_id: 'LEGACY' });
+  assert(P.listDraftKeys(storeLike, 'zh').every(k => k.indexOf('irw_oneshot_zh_') === 0), 'legacy keys ignored');
+  assert(P.loadLatestDraft(storeLike, 'zh').case_id === 'CASE-ZH', 'zh still loads zh after legacy present');
+
   console.log(JSON.stringify({
     ok: true,
     tests: [
@@ -113,7 +161,10 @@ async function main() {
       'full_results_can_export',
       'save_never_exportable',
       'round_trip_blocked',
-      'draft_without_reviewed'
+      'draft_without_reviewed',
+      'lang_scoped_keys',
+      'zh_en_keys_isolated',
+      'legacy_unprefixed_ignored'
     ]
   }, null, 2));
 }

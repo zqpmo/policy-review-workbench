@@ -68,6 +68,7 @@ node test-case-b.js            # 合并 CASE-B 到记分文件
 - **结果来源在结果产生时记录**（`local_mock` | `n8n` | `unknown`），不是导出时再看模式开关；导出免责跟随已记录来源（n8n 结果不会被标成 Mock）。
 - **`metadata.json` 是配套文件**：CSV 或 QC JSON 单独转发时，来源说明**不会**跟着走——请一并保留 `metadata.json`。
 - **「保存进度」只持久化表单/元数据**，不保存比对/QC/`result_source`；刷新后须重新「开始审查」才能导出（永不恢复「可导出」）。
+- **进度键按语言隔离**（`irw_oneshot_zh_*` / `irw_oneshot_en_*`）。中英文页**不共享**草稿（分类标签因语言而异）；旧的无前缀键会被忽略。
 - **默认本地 Mock** —— 不发 HTTP。选 n8n 并填 Webhook 后，浏览器会把载荷 `fetch` 到**你填写的 URL**；留空则保持离线。
 - **Dify 层是契约桩**（`dify_io_v0.1`）；接真后端需自行接线。
 - 单测 + CASE 测试均为**离线**（无真实 n8n/Dify/OA），不能证明端到端后端行为。恢复规则经 `policy-review-progress.js` 与 UI 共用。
