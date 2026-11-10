@@ -235,7 +235,11 @@ async function caseD() {
     review_result: review.result,
     export_targets: ['word']
   });
-  assert(retry.export_status === 'success' && retry.exported_files.length === 1, 'D-word-retry');
+  assert(retry.export_status === 'success', 'D-word-retry');
+  const retryWord = retry.exported_files.filter(f => f.artifact_type === 'word');
+  assert(retryWord.length === 1, 'D-word-retry-has-word');
+  // companion metadata is always attached when any artifact succeeds
+  assert(retry.exported_files.some(f => f.artifact_type === 'metadata'), 'D-word-retry-metadata');
 
   // missing word_report should fail only export target, not imply parse rerun
   const bad = await exp.exportArtifacts({

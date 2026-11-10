@@ -6,7 +6,7 @@
 
 [![Node](https://img.shields.io/badge/node-%3E%3D18-brightgreen)](https://nodejs.org/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](./LICENSE)
-[![Tests](https://img.shields.io/badge/tests-5%20suites-orange)](#testing)
+[![Tests](https://img.shields.io/badge/tests-6%20suites-orange)](#testing)
 
 ## Why this exists
 
@@ -31,6 +31,7 @@ open workbench.html           # macOS
 node test-parse-layer.js
 node test-flow-matrix.js
 node test-dify-export.js
+node test-export-source.js   # result source + CSV header + metadata.json
 node test-case-acceptance.js   # writes CASE_ACCEPTANCE_RESULT.json
 node test-case-b.js            # merges CASE-B into the result file
 ```
@@ -56,8 +57,9 @@ If you run **only** `test-case-b.js` on a fresh tree, the scorecard is **partial
 - **Architecture prototype / offline acceptance harness** — not a production compliance system.
 - **Parse layer is a stub** (async job simulation + failure flags). It does **not** extract text from real PDF/DOCX. The UI shows a persistent **demo banner** stating mock results are not analysis of your document.
 - **Two export paths — do not confuse them:**
-  - **Node `export-layer` module** → `.txt` report + `.csv` + `.json` (text/plain, CSV, JSON).
-  - **UI buttons** (`导出报告 (.doc)` / `导出对照表 (.xls)`) → **HTML-wrapped downloads** with `.doc` / `.xls` extensions (Word/Excel-compatible markup), **not** native OOXML binaries. Some Office builds may warn on open.
+  - **Node `export-layer` module** → `.txt` report + `.csv` + `.json` + **`metadata.json`** (source + disclaimer). CSV first line is a **standard header** (no `#` prefix row).
+  - **UI buttons** (`导出报告 (.doc)` / `导出对照表 (.xls)`) → **HTML-wrapped downloads** with `.doc` / `.xls` extensions (Word/Excel-compatible markup), **not** native OOXML binaries.
+- **Result source is recorded when results are produced** (`local_mock` | `n8n` | `unknown`), not from the UI mode toggle at export time. Disclaimers in exports follow that recorded source (n8n results are not labeled as Mock).
 - **Default mode is local Mock** — no HTTP. Choosing **n8n mode** and filling a Webhook URL will `fetch` your payload (document metadata / clause JSON) to **that URL you control**; leave empty to stay offline.
 - **Dify layer is a contract stub** (`dify_io_v0.1`); swap in a real backend only if you wire it yourself.
 - Unit + CASE tests are **offline only** (no real n8n/Dify/OA). They do not prove end-to-end backend behavior. UI logic is **inline in `workbench.html`** and is not the same code path as the tested Node modules.
@@ -83,10 +85,10 @@ Leave them empty for pure offline use.
 
 ```bash
 node test-parse-layer.js && node test-flow-matrix.js && node test-dify-export.js \
-  && node test-case-acceptance.js && node test-case-b.js
+  && node test-export-source.js && node test-case-acceptance.js && node test-case-b.js
 ```
 
-Tests are **pure Node** (no npm install). `test-case-acceptance.js` and `test-case-b.js` read/write `CASE_ACCEPTANCE_RESULT.json` **next to the script**.
+Tests are **pure Node** (no npm install). Acceptance scripts read/write `CASE_ACCEPTANCE_RESULT.json` **next to the script**.
 
 ## Scope & safety
 

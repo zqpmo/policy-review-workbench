@@ -317,11 +317,26 @@ details.adv{border:1px dashed var(--border);border-radius:8px;padding:8px 10px;b
     compareRows: [],
     report: null,
     qc: null,
+    // Recorded when results are produced (not when UI mode is selected later)
+    result_source: 'unknown', // 'local_mock' | 'n8n' | 'unknown'
     editingId: null,
     editingReviewed: false,
     prevStatusBeforeHold: null,
     feChecks: { topbar: true, upload: false, metadata: false, mock: false }
   };
+  function resultSource() {
+    return state.result_source || 'unknown';
+  }
+  function resultSourceDisclaimer(src) {
+    src = src || resultSource();
+    if (src === 'local_mock') {
+      return '【重要】来源=本地 Mock：未读取所上传文件的正文；条文、比对结论与 QC 为模拟数据，不能当作对所选制度的真实分析。';
+    }
+    if (src === 'n8n') {
+      return '【重要】来源=n8n：结果来自后端返回；当前界面未发送所选文件正文（仅提交元数据）。请结合后端说明人工复核。';
+    }
+    return '【重要】来源=未知：无法确认结果产生方式；须人工复核，不能直接采信。';
+  }
   var seq = 1;
   function $(id) { return document.getElementById(id); }
   function nowLabel() {
@@ -781,6 +796,7 @@ details.adv{border:1px dashed var(--border);border-radius:8px;padding:8px 10px;b
     if (state.status === 'parse_flagged') { if (done) done(false); return; }
     setStatus('comparing');
     state.parseLog.push({ type: 'info', text: '比对中（Mock）…' });
+    state.result_source = 'local_mock';
     refresh();
     setTimeout(function () {
       state.compareRows = [
@@ -849,6 +865,7 @@ details.adv{border:1px dashed var(--border);border-radius:8px;padding:8px 10px;b
     state.case_id = genCaseId();
     state.reviewed = null; state.refs = []; state.allow_export = false;
     state.parseLog = []; state.compareRows = []; state.report = null; state.qc = null;
+  state.result_source = 'unknown';
     $('caseTitle').value = '';
     $('asOfDate').value = new Date().toISOString().slice(0, 10);
     $('allowExportChk').checked = false;
@@ -993,6 +1010,7 @@ details.adv{border:1px dashed var(--border);border-radius:8px;padding:8px 10px;b
     state.qc = qc || { qc_overall: root.qc_overall || 'flag', qc_issues: [] };
     state.n8nRaw = root;
     state.versionRows = ver || [];
+    state.result_source = 'n8n';
 
     var allow = root.allow_export;
     if (allow == null && qc) allow = !!qc.allow_export_recommendation;
@@ -1138,15 +1156,17 @@ details.adv{border:1px dashed var(--border);border-radius:8px;padding:8px 10px;b
   function safeName(s) { return String(s || 'task').replace(/[\\/:*?"<>|]+/g, '_').slice(0, 40); }
   function buildWordHtml() {
     var title = $('caseTitle').value.trim() || '被审制度';
+    var src = resultSource();
     var lines = [
-      '制度审核报告（脱机草稿 · 模拟数据）',
+      '制度审核报告（草稿 · ' + src + '）',
       'Case：' + state.case_id,
       '任务：' + title,
       '模式：' + $('reviewMode').value,
       '审查基准日：' + $('asOfDate').value,
       '审查范围：' + $('reviewScope').value,
+      '结果来源：' + src,
       '',
-      '【重要】本报告由本地 Mock 流程生成：未读取所上传文件的正文；条文、比对结论与 QC 结果为模拟数据，不能当作对所选制度的真实分析。',
+      resultSourceDisclaimer(src),
       '【边界】本文件为 AI 辅助审查草稿，须人工复核，不构成正式法律/审计结论。',
       '',
       '一、审查工作概况',
@@ -1164,6 +1184,7 @@ details.adv{border:1px dashed var(--border);border-radius:8px;padding:8px 10px;b
     return '<html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:w="urn:schemas-microsoft-com:office:word"><head><meta charset="utf-8"><title>制度审核报告</title></head><body>' + paras + '</body></html>';
   }
   function buildExcelHtml() {
+    var src = resultSource();
     var head = ['被审条款', '来源类别', '依据', '差异', '风险', 'QC'];
     var rows = [head].concat((state.compareRows || []).map(function (r) {
       return [r.clause, r.cat, r.basis, r.diff, r.risk, r.qc];
@@ -1171,7 +1192,7 @@ details.adv{border:1px dashed var(--border);border-radius:8px;padding:8px 10px;b
     var body = rows.map(function (row) {
       return '<tr>' + row.map(function (c) { return '<td>' + escapeHtml(c) + '</td>'; }).join('') + '</tr>';
     }).join('');
-    var banner = '<p><strong>【重要】本地 Mock 模拟数据 · 未读取文件正文</strong> — 本对照表不能当作对所选制度的真实比对结果；须人工复核，不构成正式法律/审计结论。</p>';
+    var banner = '<p>' + escapeHtml(resultSourceDisclaimer(src)) + ' 须人工复核，不构成正式法律/审计结论。</p>';
     return '<html><head><meta charset="utf-8"><title>逐条对照</title></head><body>' + banner + '<table border="1">' + body + '</table></body></html>';
   }
   

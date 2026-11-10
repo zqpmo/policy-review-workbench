@@ -81,7 +81,9 @@ async function main() {
     review_result: rev.result,
     export_targets: ['word']
   });
-  assert(w.exported_files.length === 1 && w.exported_files[0].artifact_type === 'word', 'word only retry');
+  assert(w.export_status === 'success', 'word only retry');
+  assert(w.exported_files.filter(f => f.artifact_type === 'word').length === 1, 'word only has one word artifact');
+  assert(w.exported_files.some(f => f.artifact_type === 'metadata'), 'word only still has metadata');
 
   console.log(JSON.stringify({
     ok: true,

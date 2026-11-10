@@ -1,6 +1,6 @@
 {
   "ok": true,
-  "executed_at": "2026-11-10T06:03:59.462Z",
+  "executed_at": "2026-11-10T07:10:07.444Z",
   "cases": [
     {
       "case_id": "CASE-A",
@@ -13,10 +13,11 @@
         "export_success"
       ],
       "export_files": [
-        "制度审查报告_CASE-A成功主链_CASE-A_202611101403.txt",
-        "逐条对比主表_CASE-A成功主链_CASE-A_202611101403.csv",
-        "版本变化表_CASE-A成功主链_CASE-A_202611101403.csv",
-        "CASE-A_QC结果_v0.1_202611101403.json"
+        "制度审查报告_CASE-A成功主链_CASE-A_202611101510.txt",
+        "逐条对比主表_CASE-A成功主链_CASE-A_202611101510.csv",
+        "版本变化表_CASE-A成功主链_CASE-A_202611101510.csv",
+        "CASE-A_QC结果_v0.1_202611101510.json",
+        "CASE-A_metadata_202611101510.json"
       ]
     },
     {

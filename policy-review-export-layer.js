@@ -25,25 +25,57 @@
   }
 
   function toCsv(rows, columns) {
-    // Row 0 = disclaimer (not a data row); data starts at row 1
-    var lines = ['# 模拟数据/未读取文件正文（若来自本地 Mock）— 仅供草稿复核，非正式结论'];
-    lines.push(columns.join(','));
+    // Standard CSV: first line is always the header row
+    var lines = [columns.join(',')];
     (rows || []).forEach(function (r) {
       lines.push(columns.map(function (c) { return csvEscape(r[c]); }).join(','));
     });
     return '\uFEFF' + lines.join('\n');
   }
 
+  function normalizeSource(src) {
+    if (src === 'local_mock' || src === 'n8n' || src === 'unknown') return src;
+    return 'unknown';
+  }
+
+  function sourceDisclaimer(src) {
+    src = normalizeSource(src);
+    if (src === 'local_mock') {
+      return '来源=本地 Mock：未读取所上传文件正文；条文与 QC 为模拟数据，不能当作对所选制度的真实分析。';
+    }
+    if (src === 'n8n') {
+      return '来源=n8n：结果来自后端返回；生成结果时界面未发送所选文件正文（仅元数据）。请结合后端说明人工复核。';
+    }
+    return '来源=未知：无法确认结果产生方式；须人工复核，不能直接采信。';
+  }
+
+  function buildMetadata(caseId, runId, src, extra) {
+    src = normalizeSource(src);
+    var meta = {
+      case_id: caseId,
+      export_run_id: runId,
+      result_source: src,
+      generated_at: new Date().toISOString(),
+      disclaimer: sourceDisclaimer(src),
+      file_body_read: src === 'local_mock' ? false : 'unknown',
+      notes: 'Companion metadata for this export batch. CSV keeps a standard header row; this file carries source and legal boundary text.'
+    };
+    if (extra) Object.keys(extra).forEach(function (k) { meta[k] = extra[k]; });
+    return meta;
+  }
+
   function buildWordText(caseId, report, meta) {
     report = report || {};
     meta = meta || {};
+    var src = normalizeSource(meta.result_source);
     var lines = [];
     lines.push(report.report_title || '制度合规性审查报告');
     lines.push('Case: ' + caseId);
     lines.push('被审制度: ' + (meta.case_title || meta.document_name || ''));
+    lines.push('结果来源: ' + src);
     lines.push('模板: standard-policy-review');
     lines.push('生成时间: ' + new Date().toISOString());
-    lines.push('【重要】若由本地 Mock/UI 生成：未读取所上传文件正文；条文与 QC 为模拟数据，不能当作对所选制度的真实分析。');
+    lines.push('【重要】' + sourceDisclaimer(src));
     lines.push('【边界】本报告为AI辅助审查草稿，需人工复核确认；不构成正式法律/审计结论。');
     lines.push('');
     lines.push('一、审查/审计工作概况');
@@ -96,6 +128,7 @@
         }
 
         var runId = 'EXPORT-' + String(seq++).padStart(3, '0');
+        var resultSource = normalizeSource(payload.result_source);
         var artifacts = [];
         var errors = [];
 
@@ -109,7 +142,7 @@
                 artifact_type: 'word',
                 file_name: wname,
                 mime: 'text/plain;charset=utf-8',
-                content: buildWordText(caseId, result.word_report, payload),
+                content: buildWordText(caseId, result.word_report, Object.assign({}, payload, { result_source: resultSource })),
                 artifact_id: runId + '-WORD'
               });
             } else if (t === 'excel') {
@@ -151,9 +184,23 @@
           }
         });
 
+        if (artifacts.length) {
+          artifacts.push({
+            artifact_type: 'metadata',
+            file_name: caseId + '_metadata_' + stamp + '.json',
+            mime: 'application/json;charset=utf-8',
+            content: JSON.stringify(buildMetadata(caseId, runId, resultSource, {
+              case_title: title,
+              export_targets: targets.slice()
+            }), null, 2),
+            artifact_id: runId + '-META'
+          });
+        }
+
         var out = {
           export_run_id: runId,
           case_id: caseId,
+          result_source: resultSource,
           export_status: errors.length && !artifacts.length ? 'failed' : (errors.length ? 'partial' : 'success'),
           exported_files: artifacts.map(function (a) {
             return { artifact_type: a.artifact_type, file_name: a.file_name, artifact_id: a.artifact_id };
@@ -191,6 +238,9 @@
   return {
     createExportLayer: createExportLayer,
     buildWordText: buildWordText,
-    toCsv: toCsv
+    toCsv: toCsv,
+    sourceDisclaimer: sourceDisclaimer,
+    normalizeSource: normalizeSource,
+    buildMetadata: buildMetadata
   };
 });
