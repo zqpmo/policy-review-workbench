@@ -59,6 +59,9 @@ details.adv{border:1px dashed var(--border);border-radius:8px;padding:8px 10px;b
 .backend-bar .ok{color:var(--green);font-weight:600}.backend-bar .warn{color:var(--orange);font-weight:600}.backend-bar .err{color:var(--red);font-weight:600}
 .backend-bar .mode-on{outline:2px solid var(--blue);background:var(--blue-soft)!important;color:var(--blue)!important;font-weight:700}
 .backend-bar .btn.primary.mode-on{background:var(--blue)!important;color:#fff!important;outline-color:#1565c0}
+.demo-banner{margin:8px 16px;padding:10px 12px;border:1px solid #f0d3b4;background:#FBEBDE;color:#8a5220;border-radius:8px;font-size:13px;line-height:1.45}
+.demo-banner strong{color:#6b3f1a}
+.demo-banner code{background:rgba(0,0,0,.06);padding:0 4px;border-radius:3px}
 </style>
 </head>
 <body>
@@ -79,8 +82,8 @@ details.adv{border:1px dashed var(--border);border-radius:8px;padding:8px 10px;b
     <div class="actions" id="topActions">
       <button class="btn primary" id="btnRun" type="button">开始审查</button>
       <button class="btn" id="btnSave" type="button" title="把当前填写内容保存在本浏览器，刷新后可恢复；不是公司任务库">保存进度</button>
-      <button class="btn primary" id="btnExportWord" type="button" disabled>导出 Word 报告</button>
-      <button class="btn primary" id="btnExportExcel" type="button" disabled>导出 Excel 对照表</button>
+      <button class="btn primary" id="btnExportWord" type="button" disabled title="下载 HTML 包装的 .doc（非原生 Word）">导出报告 (.doc)</button>
+      <button class="btn primary" id="btnExportExcel" type="button" disabled title="下载 HTML 表格包装的 .xls（非原生 Excel）">导出对照表 (.xls)</button>
       <button class="btn" id="btnAllowExport" type="button" disabled title="审查完成后自动打开；也可手动确认">确认可导出</button>
       <button class="btn" id="btnNewCase" type="button">清空重来</button>
       <button class="btn" id="btnParse" type="button" disabled>仅解析</button>
@@ -90,7 +93,12 @@ details.adv{border:1px dashed var(--border);border-radius:8px;padding:8px 10px;b
     </div>
   </header>
 
-  
+  <div class="demo-banner" role="note">
+    <strong>演示 / Mock 默认开启：</strong>本地模式<strong>不读取上传文件的正文</strong>；解析条文数、比对行与 QC 结论均为<strong>模拟数据</strong>，不能当作对所选制度的分析。
+    界面「导出报告/对照表」下载的是 <strong>HTML 包装的 <code>.doc</code> / <code>.xls</code></strong>（非原生 Office）；
+    Node <code>export-layer</code> 模块导出为 <strong>text / CSV / JSON</strong>。详见 README。
+  </div>
+
     <div class="backend-bar" id="backendBar">
     <strong style="color:var(--text)">后端</strong>
     <button type="button" class="btn sm" id="btnModeLocal">模式：本地 Mock</button>
@@ -522,7 +530,8 @@ details.adv{border:1px dashed var(--border);border-radius:8px;padding:8px 10px;b
     }
     if (!state.qc) $('qcPanel').innerHTML = '<div class="empty">尚未运行 QC</div>';
     else {
-      $('qcPanel').innerHTML = '<div class="alert ' + (state.qc.qc_overall === 'pass' ? 'ok' : 'warn') + '">qc_overall = ' + state.qc.qc_overall + '</div>' +
+      var qcOverall = escapeHtml(String(state.qc.qc_overall == null ? '' : state.qc.qc_overall));
+      $('qcPanel').innerHTML = '<div class="alert ' + (state.qc.qc_overall === 'pass' ? 'ok' : 'warn') + '">qc_overall = ' + qcOverall + '</div>' +
         state.qc.qc_issues.map(function (i) {
           return '<div class="qc-item ' + (state.qc.qc_overall === 'flag' ? 'flag' : '') + '"><strong>' + escapeHtml(i.issue_no) + '</strong> · ' +
             escapeHtml(i.issue_type) + '<br/>' + escapeHtml(i.issue_detail) + '</div>';
@@ -530,7 +539,7 @@ details.adv{border:1px dashed var(--border);border-radius:8px;padding:8px 10px;b
     }
     $('allowExportChk').checked = state.allow_export;
     $('exportHint').textContent = state.allow_export && state.status === 'ready_for_export'
-      ? '已确认可导出：请用顶栏「导出 Word 报告 / 导出 Excel 对照表」。'
+      ? '已确认可导出：请用顶栏「导出报告 (.doc) / 导出对照表 (.xls)」（HTML 包装，非原生 Office）。'
       : '完成「开始审查」后会自动确认可导出；也可点顶栏「确认可导出」。';
     $('exportHint').className = 'alert ' + (state.allow_export && state.status === 'ready_for_export' ? 'ok' : 'info');
   }

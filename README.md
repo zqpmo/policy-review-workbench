@@ -12,12 +12,12 @@
 
 Policy/regulation review needs a **repeatable chain**: ingest clauses, compare against upper-level / peer / prior versions, run QC gates, then export a report — without letting a draft leak as “approved”. This workbench encodes that as:
 
-- **Parse layer** — file → structured clauses (async jobs, failure flags block the chain)
+- **Parse layer** — file → structured clauses (async jobs, failure flags block the chain). **Stub only — does not read file bodies.**
 - **Flow matrix** — button/state machine: what is legal next (compare / QC / export / hold)
 - **Compare & QC layer** — contract-shaped payload (Dify-compatible stub; swap for a real HTTP backend later)
-- **Export layer** — gated **plain-text report + CSV + JSON** drafts (not binary `.docx`); blocked until status allows
+- **Export layer (Node module)** — gated **plain-text report + CSV + JSON** drafts (not binary `.docx`); blocked until status allows
 
-**Safety default:** **local Mock** — no network. Webhook/Dify fields are optional (`http://127.0.0.1:...`). No OA, no production credentials.
+**Safety default:** **local Mock** — no network, **no file-body parsing**. Webhook/Dify fields are optional (`http://127.0.0.1:...`). No OA, no production credentials.
 
 ## Quick start
 
@@ -54,11 +54,13 @@ If you run **only** `test-case-b.js` on a fresh tree, the scorecard is **partial
 ### Known limitations (honest list)
 
 - **Architecture prototype / offline acceptance harness** — not a production compliance system.
-- **Parse layer is a stub** (async job simulation + failure flags). It does **not** extract text from real PDF/DOCX.
-- **“Word” export is a plain-text report** (`.txt`, `text/plain`) plus CSV/JSON — **not** a binary `.docx`.
+- **Parse layer is a stub** (async job simulation + failure flags). It does **not** extract text from real PDF/DOCX. The UI shows a persistent **demo banner** stating mock results are not analysis of your document.
+- **Two export paths — do not confuse them:**
+  - **Node `export-layer` module** → `.txt` report + `.csv` + `.json` (text/plain, CSV, JSON).
+  - **UI buttons** (`导出报告 (.doc)` / `导出对照表 (.xls)`) → **HTML-wrapped downloads** with `.doc` / `.xls` extensions (Word/Excel-compatible markup), **not** native OOXML binaries. Some Office builds may warn on open.
 - **Default mode is local Mock** — no HTTP. Choosing **n8n mode** and filling a Webhook URL will `fetch` your payload (document metadata / clause JSON) to **that URL you control**; leave empty to stay offline.
 - **Dify layer is a contract stub** (`dify_io_v0.1`); swap in a real backend only if you wire it yourself.
-- Unit + CASE tests are **offline only** (no real n8n/Dify/OA). They do not prove end-to-end backend behavior.
+- Unit + CASE tests are **offline only** (no real n8n/Dify/OA). They do not prove end-to-end backend behavior. UI logic is **inline in `workbench.html`** and is not the same code path as the tested Node modules.
 - Exported artifacts are **drafts** until human review; the tool does not issue final legal/audit determinations.
 
 ### Chain gates (summary)
@@ -88,8 +90,8 @@ Tests are **pure Node** (no npm install). `test-case-acceptance.js` and `test-ca
 
 ## Scope & safety
 
-- **Does:** local clause **stubs**, state machine, gated **text/CSV/JSON** exports, offline acceptance.
-- **Does not:** parse real PDF/DOCX binaries; produce binary `.docx`; connect to OA/production Dify/n8n unless **you** configure a Webhook URL; issue final legal/compliance determinations; read secrets.
+- **Does:** local clause **stubs**, state machine, gated **module** text/CSV/JSON exports, UI HTML-wrapped `.doc`/`.xls` downloads, offline acceptance.
+- **Does not:** parse real PDF/DOCX binaries; produce native binary `.docx`/`.xlsx`; connect to OA/production Dify/n8n unless **you** configure a Webhook URL; issue final legal/compliance determinations; read secrets.
 - Treat exported drafts as **drafts** until human review.
 
 ## License
