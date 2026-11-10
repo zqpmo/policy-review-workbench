@@ -123,7 +123,7 @@ details.adv{border:1px dashed var(--border);border-radius:8px;padding:8px 10px;b
       <div class="panel-h"><h2>左侧输入区</h2><span class="hint">任务 · 上传 · 分组</span></div>
       <div class="panel-b">
         <div id="globalAlerts"></div>
-        <div class="alert info" id="saveHint">「保存进度」= 把本页填写内容记在<strong>本浏览器</strong>，刷新可恢复。关闭浏览器或换电脑不会同步；这是<strong>一次性任务页</strong>，不接账号权限，也不显示历史任务列表。</div>
+        <div class="alert info" id="saveHint">「保存进度」只记<strong>本浏览器</strong>里的表单与文件元数据，<strong>不保存比对/QC/结果来源</strong>；刷新后须重新「开始审查」才能导出。关闭浏览器或换电脑不会同步；这是一次性任务页，不接账号权限。</div>
 
         <div class="section-title">A｜任务信息</div>
         <div class="field">
@@ -740,19 +740,26 @@ details.adv{border:1px dashed var(--border);border-radius:8px;padding:8px 10px;b
     ensureCaseIdentity();
     if (state.status === 'draft' && state.reviewed) setStatus('uploaded');
     try {
+      // Option 1: persist form fields only — NOT compare/report/QC/result_source.
+      // Never persist allow_export=true: results are not saved, so export must not look ready after restore.
+      var st = state.status;
+      if (st === 'ready_for_export' || st === 'ready_for_review' || st === 'qc_running' || st === 'comparing') {
+        st = state.reviewed ? 'uploaded' : 'draft';
+      }
       localStorage.setItem(storageKey(), JSON.stringify({
         case_id: state.case_id,
         title: $('caseTitle').value,
-        status: state.status,
+        status: st,
         reviewed: state.reviewed,
         refs: state.refs,
-        allow_export: state.allow_export,
+        allow_export: false,
+        results_saved: false,
         as_of_date: $('asOfDate').value,
         review_mode: $('reviewMode').value,
         review_scope: $('reviewScope').value,
         saved_at: new Date().toISOString()
       }));
-      alert('进度已保存在本浏览器（一次性任务，不入公司任务库）。\n键：' + storageKey());
+      alert('进度已保存在本浏览器（仅表单/文件元数据，不含比对与 QC 结果）。\n刷新后需重新运行「开始审查」才能导出。\n键：' + storageKey());
     } catch (e) { alert('本浏览器无法写入本地存储：' + (e.message || e)); }
     refresh();
   };
@@ -1265,12 +1272,23 @@ details.adv{border:1px dashed var(--border);border-radius:8px;padding:8px 10px;b
         state.case_id = raw.case_id;
         state.reviewed = raw.reviewed || null;
         state.refs = raw.refs || [];
-        state.allow_export = !!raw.allow_export;
+        // Results (compare/report/QC/result_source) are never persisted — never restore export-ready.
+        state.allow_export = false;
+        state.compareRows = [];
+        state.report = null;
+        state.qc = null;
+        state.result_source = 'unknown';
         if (raw.title) $('caseTitle').value = raw.title;
         if (raw.as_of_date) $('asOfDate').value = raw.as_of_date;
         if (raw.review_mode) $('reviewMode').value = raw.review_mode;
         if (raw.review_scope) $('reviewScope').value = raw.review_scope;
-        if (raw.status) state.status = raw.status;
+        var restored = raw.status || 'draft';
+        if (restored === 'ready_for_export' || restored === 'ready_for_review' ||
+            restored === 'qc_running' || restored === 'comparing' || restored === 'parsing') {
+          restored = state.reviewed ? 'uploaded' : 'draft';
+        }
+        state.status = restored;
+        state.parseLog = [{ type: 'warn', text: '已恢复表单进度；比对/QC/结果来源未保存，请重新「开始审查」后再导出。' }];
       }
     }
   } catch (e) {}

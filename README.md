@@ -60,6 +60,8 @@ If you run **only** `test-case-b.js` on a fresh tree, the scorecard is **partial
   - **Node `export-layer` module** → `.txt` report + `.csv` + `.json` + **`metadata.json`** (source + disclaimer). CSV first line is a **standard header** (no `#` prefix row).
   - **UI buttons** (`导出报告 (.doc)` / `导出对照表 (.xls)`) → **HTML-wrapped downloads** with `.doc` / `.xls` extensions (Word/Excel-compatible markup), **not** native OOXML binaries.
 - **Result source is recorded when results are produced** (`local_mock` | `n8n` | `unknown`), not from the UI mode toggle at export time. Disclaimers in exports follow that recorded source (n8n results are not labeled as Mock).
+- **`metadata.json` is a companion file.** If a CSV or QC JSON is forwarded alone, the source disclaimer does **not** travel with it — keep `metadata.json` alongside, or re-attach source yourself.
+- **「保存进度」only persists form/metadata**, not compare/report/QC/`result_source`. After refresh you must re-run 「开始审查」 before export (export-ready is never restored).
 - **Default mode is local Mock** — no HTTP. Choosing **n8n mode** and filling a Webhook URL will `fetch` your payload (document metadata / clause JSON) to **that URL you control**; leave empty to stay offline.
 - **Dify layer is a contract stub** (`dify_io_v0.1`); swap in a real backend only if you wire it yourself.
 - Unit + CASE tests are **offline only** (no real n8n/Dify/OA). They do not prove end-to-end backend behavior. UI logic is **inline in `workbench.html`** and is not the same code path as the tested Node modules.
